@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="prefixer icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="prefixer icon — namespace prefixes for agent search">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#10161f"/>
@@ -11,13 +11,12 @@
   </defs>
   <rect width="512" height="512" rx="104" fill="url(#bg)"/>
   <!-- scoped row: namespace chip + lit result -->
-  <rect x="96" y="104" width="120" height="56" rx="16" fill="url(#acc)"/>
-  <circle cx="156" cy="122" r="9" fill="#0b0f14"/>
-  <circle cx="156" cy="142" r="9" fill="#0b0f14"/>
-  <rect x="232" y="104" width="184" height="56" rx="16" fill="url(#acc)" opacity="0.92"/>
-  <!-- unscoped rows, dimmed -->
-  <rect x="96" y="200" width="200" height="56" rx="16" fill="#9aa7b4" opacity="0.22"/>
-  <rect x="96" y="296" width="156" height="56" rx="16" fill="#9aa7b4" opacity="0.22"/>
-  <!-- wordmark -->
-  <text x="256" y="452" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="56" font-weight="700" letter-spacing="1" fill="url(#acc)">Prefixer</text>
+  <rect x="104" y="120" width="110" height="52" rx="14" fill="url(#acc)"/>
+  <circle cx="159" cy="137" r="8" fill="#0b0f14"/>
+  <circle cx="159" cy="155" r="8" fill="#0b0f14"/>
+  <rect x="228" y="120" width="180" height="52" rx="14" fill="url(#acc)" opacity="0.92"/>
+  <!-- wordmark: the prefix colors the prefix -->
+  <text x="256" y="300" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="72" font-weight="700" letter-spacing="1"><tspan fill="url(#acc)">Prefix</tspan><tspan fill="#e6edf3">:</tspan><tspan fill="#7d8a97">er</tspan></text>
+  <!-- what it does -->
+  <text x="256" y="356" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="21" font-weight="400" letter-spacing="5" fill="#9aa7b4">SCOPED AGENT SEARCH</text>
 </svg>

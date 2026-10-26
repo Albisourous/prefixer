@@ -1,10 +1,18 @@
 <p align="center">
-  <img src="assets/icon.svg" alt="prefixer" width="120">
+  <img src="assets/icon.svg" alt="prefixer — namespace prefixes for AI agent code search" width="120">
 </p>
 
 # prefixer
 
-Add namespace prefix skill for your agent to improve search efficiency and performance.
+An agent skill for scoped codebase search, index-time doc prefixes, and
+token-efficient prompt ordering — for Devin, Claude Code, Codex, Cursor,
+and friends.
+
+<p>
+  <a href="https://github.com/Albisourous/prefixer/stargazers"><img src="https://img.shields.io/github/stars/Albisourous/prefixer" alt="GitHub stars"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
+  <a href="https://github.com/Albisourous/prefixer/actions/workflows/validate.yml"><img src="https://github.com/Albisourous/prefixer/actions/workflows/validate.yml/badge.svg" alt="validate"></a>
+</p>
 
 **prefixer** is a cross-agent skill that teaches AI coding agents one
 discipline — *scope first, vary last, measure the delta* — applied wherever a
@@ -38,6 +46,17 @@ grep "session" src/auth/                → 12 hits
 read src/auth/session.ts:40-58          → found
 ≈ 3 tool calls, a fraction of the tokens, answer found on purpose
 ```
+
+## Good fit if you
+
+- run AI coding agents over large repos or **many repos** and want fewer,
+  better-targeted search calls and a smaller context bill
+- are building a **RAG or search index** and want better retrieval without
+  fine-tuning (index-time prefix injection, ACL 2026)
+- write **prompts, rules files, or skills** and want prompt caches to
+  actually hit (stable-prefix ordering)
+- want the before/after **measured**, not vibes — `metrics.jsonl` tracking
+  is built in
 
 It's grounded in published results — index-time prefix injection (ACL 2026:
 +3–8% Hit@5), contextual retrieval (−49% retrieval failures), and prompt
