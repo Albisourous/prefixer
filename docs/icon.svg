@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 272" role="img" aria-label="prefixer — namespace prefixes for agent search">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10161f"/>
+      <stop offset="1" stop-color="#0b0f14"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#34e0c0"/>
+      <stop offset="1" stop-color="#2bb3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="880" height="272" rx="56" fill="url(#bg)"/>
+  <!-- wordmark: the prefix colors the prefix -->
+  <text x="440" y="150" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="108" font-weight="700" letter-spacing="1"><tspan fill="url(#acc)">Prefix</tspan><tspan fill="#e6edf3">:</tspan><tspan fill="#7d8a97">er</tspan></text>
+  <!-- what it does -->
+  <text x="440" y="218" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="26" font-weight="400" letter-spacing="7" fill="#9aa7b4">SCOPED AGENT SEARCH</text>
+</svg>

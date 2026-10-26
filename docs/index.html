@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prefixer — scoped code search skill for AI agents</title>
+<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search — fewer tokens, faster searches. Works with Devin, Claude Code, Codex, and Cursor.">
+<meta name="keywords" content="prefixer, agent skill, code search, codebase search, namespace map, AI coding agent, scoped search, token efficiency, prompt caching, Devin skill, Claude Code skill, Cursor skill, Codex skill">
+<link rel="canonical" href="https://albisourous.github.io/prefixer/">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Prefixer — scoped code search skill for AI agents">
+<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree. Fewer tool calls, smaller results, fewer tokens.">
+<meta property="og:url" content="https://albisourous.github.io/prefixer/">
+<meta property="og:image" content="https://albisourous.github.io/prefixer/icon.svg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Prefixer — scoped code search skill for AI agents">
+<meta name="twitter:description" content="A namespace map that keeps agent searches inside the right part of the tree. Fewer tool calls, fewer tokens.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "prefixer",
+  "alternateName": "Prefixer agent skill",
+  "description": "An agent skill for scoped codebase search — a namespace map that keeps agent searches inside the right part of the tree, plus playbooks for index-time doc prefixes and prompt-cache ordering.",
+  "codeRepository": "https://github.com/Albisourous/prefixer",
+  "programmingLanguage": "Shell",
+  "license": "https://github.com/Albisourous/prefixer/blob/main/LICENSE",
+  "author": {
+    "@type": "Person",
+    "name": "Albisourous",
+    "url": "https://github.com/Albisourous"
+  },
+  "keywords": "agent skill, code search, codebase search, namespace map, AI agent, scoped search, prompt caching, RAG"
+}
+</script>
+<style>
+  :root {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e;
+    --teal: #2dd4bf; --blue: #60a5fa; --border: #30363d;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 64px 24px;
+  }
+  img.logo { display: block; margin: 0 auto 40px; }
+  h1 { font-size: 1.6rem; margin: 0 0 16px; }
+  h2 { font-size: 1.15rem; margin: 40px 0 12px; color: var(--teal); font-weight: 600; }
+  p { margin: 0 0 14px; color: var(--fg); }
+  p.muted, li.muted { color: var(--muted); }
+  ul { padding-left: 20px; margin: 0 0 14px; }
+  li { margin: 6px 0; }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    background: #161b22; border: 1px solid var(--border); border-radius: 6px;
+  }
+  code { padding: 2px 6px; font-size: .875em; }
+  pre { padding: 14px 16px; margin: 0 0 14px; overflow-x: auto; }
+  pre code { background: none; border: 0; padding: 0; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .cta {
+    display: inline-block; padding: 10px 20px; margin-top: 8px;
+    background: linear-gradient(90deg, var(--teal), var(--blue));
+    color: #0d1117; font-weight: 600; border-radius: 8px;
+  }
+  .cta:hover { text-decoration: none; opacity: .9; }
+  footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 14px; }
+  td, th { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { color: var(--teal); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<img class="logo" src="icon.svg" alt="prefixer — namespace prefixes for AI agent code search" width="420">
+
+<h1>Prefixer is an agent skill for scoped codebase search.</h1>
+
+<p>AI coding agents that grep the whole tree pay for every irrelevant hit in
+tokens and tool calls. Prefixer gives the agent a small namespace map — a
+table of short prefixes to the parts of the repo that matter — so searches
+start scoped, widen only on a miss, and land inside the right files first.</p>
+
+<p>It is plain Markdown and shell scripts, not a service and not an MCP
+server. One <code>SKILL.md</code>, five reference playbooks, three scripts.
+It works with any agent that reads skills:
+<a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, and friends.</p>
+
+<a class="cta" href="https://github.com/Albisourous/prefixer">View on GitHub →</a>
+
+<h2>How it works</h2>
+
+<ul>
+  <li><strong>Scope first.</strong> On entry to a repo, the agent reads
+  <code>.prefixer/namespaces.md</code> — rows like
+  <code>auth: | src/auth/** | login, tokens, sessions</code> — and searches
+  inside the matching namespace instead of the tree.</li>
+  <li><strong>Map the segment, not the world.</strong> No map? The agent
+  builds only the 3–5 namespaces the current task touches. A partial map is
+  a legal, working state.</li>
+  <li><strong>Widen one level on a miss.</strong> A scoped search that misses
+  widens to the parent scope, then the root — never a blind second pass.</li>
+  <li><strong>Measure the delta.</strong> Each scoped search appends a line to
+  <code>.prefixer/metrics.jsonl</code> so the win is logged, not vibes.</li>
+</ul>
+
+<h2>Install</h2>
+
+<pre><code>npx skills add Albisourous/prefixer</code></pre>
+
+<p class="muted">Or copy <code>SKILL.md</code>, <code>references/</code>, and
+<code>scripts/</code> into <code>.agents/skills/prefixer/</code> (or
+<code>.devin/skills/prefixer/</code>, <code>~/.config/devin/skills/</code> for
+Devin) in your project. Full instructions in the
+<a href="https://github.com/Albisourous/prefixer#install">README</a>.</p>
+
+<h2>Good fit if</h2>
+
+<ul>
+  <li>You work in a large repo, a monorepo, or many codebases at once.</li>
+  <li>Agent searches return walls of hits from the wrong modules.</li>
+  <li>You want a persistent orientation map future sessions reuse.</li>
+  <li>You index docs or chunks for RAG and want tighter embeddings.</li>
+  <li>You care about prompt-cache hits and token cost, measured not guessed.</li>
+</ul>
+
+<h2>Three prefix positions</h2>
+
+<table>
+  <tr><th>Where the prefix goes</th><th>What it buys</th></tr>
+  <tr><td>In front of a search (<code>auth:</code>, <code>src/api/</code>)</td>
+      <td>Fewer tool calls, smaller results — fewer tokens exploring</td></tr>
+  <tr><td>In front of a doc at index time</td>
+      <td>Tighter embedding clusters — better Hit@k, zero fine-tuning</td></tr>
+  <tr><td>At the front of a prompt</td>
+      <td>Prompt-cache hits — cheaper input, faster TTFT</td></tr>
+</table>
+
+<p class="muted">The index-time and cache-ordering playbooks ship in
+<code>references/</code>. The research base — Anthropic Contextual Retrieval,
+index-time prefix injection (ACL 2026), Prompt Cache, RadixAttention — is
+collected in
+<a href="https://github.com/Albisourous/prefixer/blob/main/DESIGN.md">DESIGN.md</a>.</p>
+
+<footer>
+  <p><a href="https://github.com/Albisourous/prefixer">Albisourous/prefixer on GitHub</a> ·
+     <a href="https://skills.sh/albisourous/prefixer">skills.sh listing</a> ·
+     <a href="https://github.com/Albisourous/prefixer/blob/main/CHANGELOG.md">changelog</a> ·
+     MIT license</p>
+</footer>
+
+</body>
+</html>
