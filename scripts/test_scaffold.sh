@@ -660,5 +660,39 @@ case "$out" in
   *) echo "FAIL eval_repo marks excluded-scope rows n/a"; fail=1 ;;
 esac
 
+# --- eval/agent harness mechanics (no agent CLI needed) -----------------
+ag="$here/../eval/agent"
+fx="$tmp/fixture"
+bash "$ag/build_fixture.sh" "$fx" >/dev/null
+[ -f "$fx/src/auth/session.ts" ] && grep -q expireSession "$fx/src/auth/session.ts" \
+  && [ -d "$fx/.git" ] \
+  && echo "ok   agent fixture builds with planted answer + own git" || { echo "FAIL agent fixture builds"; fail=1; }
+
+lg="$tmp/toollog.jsonl"
+echo '{"tool_name":"exec","tool_input":{"command":"grep -rn x ."},"tool_response":{"output":"twelve bytes","success":true}}' |
+  bash "$ag/hook_posttool.sh" "$lg"
+case "$(cat "$lg")" in
+  *'"out_bytes": 12'*'"tool": "exec"'*|*'"tool": "exec"'*'"out_bytes": 12'*)
+    echo "ok   hook_posttool logs tool + byte count" ;;
+  *) echo "FAIL hook_posttool logs tool + byte count"; fail=1 ;;
+esac
+
+mr="$tmp/runs"; mkdir -p "$mr"
+cp "$lg" "$mr/baseline__t1__r1.jsonl"
+echo "src/auth/session.ts — expireSession" > "$mr/baseline__t1__r1.out.txt"
+out="$(python3 "$ag/summarize.py" "$mr" "$ag/tasks.txt")"
+case "$out" in
+  *"| t1 | baseline | 1 | 1 | 12"*"success %"*) echo "ok   summarize counts a run" ;;
+  *) echo "FAIL summarize counts a run"; fail=1 ;;
+esac
+
+out="$(bash "$ag/run.sh" --dry-run --fixture "$tmp/dfx" --runs "$tmp/druns" 2>&1)"
+case "$out" in
+  *"dry-run done"*) echo "ok   run.sh --dry-run wires fixture + hooks" ;;
+  *) echo "FAIL run.sh --dry-run wires fixture + hooks"; fail=1 ;;
+esac
+[ -f "$tmp/dfx/.prefixer/namespaces.md" ] && grep -q "| billing:" "$tmp/dfx/.prefixer/namespaces.md" \
+  && echo "ok   fixture map scaffolds clean (billing: row present)" || { echo "FAIL fixture map scaffolds clean"; fail=1; }
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

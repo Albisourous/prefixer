@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.0] - 2026-10-26
+
+Evidence on behavior, not just bytes: an eval harness that runs real
+agent sessions against a fixed task suite — with and without the map —
+and counts what the tools actually did.
+
+- `eval/agent/run.sh` runs `tasks.txt` twice per task: `baseline` (no
+  `.prefixer/`) vs `mapped` (scaffolded map injected by a SessionStart
+  hook). A PostToolUse hook logs every tool call; `summarize.py` turns
+  the log into per-task and aggregate tables — tool calls, searches,
+  search-output bytes, first-try-scoped rate, answer correctness, and
+  whether a baseline run scaffolded its own map. Adapters for `devin`
+  and `claude`; a new harness needs four functions in `adapters/`.
+- `build_fixture.sh` builds a deterministic ~140-file repo: one unique
+  answer symbol per task, decoy vocabulary spread across sibling dirs,
+  and a `dist/` dupe tree so root greps pay for generated files too.
+- `run.sh --dry-run` verifies fixture + hook wiring without an agent;
+  `--fixture`/`--runs` redirect artifacts.
+
 ## [0.10.0] - 2026-10-26
 
 From prompt rules to a tool: the discipline now runs as commands, the

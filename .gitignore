@@ -2,3 +2,5 @@
 __pycache__/
 *.pyc
 eval/.work/
+eval/agent/.fixture/
+eval/agent/.runs/

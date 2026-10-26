@@ -85,6 +85,10 @@ ch_m = re.search(r"^##\s*\[?([\w.\-]+)\]?", changelog, re.M)
 if version and ch_m and ch_m.group(1) != version:
     fail(f"CHANGELOG.md: first version {ch_m.group(1)} != SKILL.md {version}")
 
+sv_m = re.search(r'"softwareVersion":\s*"([\w.\-]+)"', read("docs/index.html"))
+if version and sv_m and sv_m.group(1) != version:
+    fail(f"docs/index.html: softwareVersion {sv_m.group(1)} != SKILL.md {version}")
+
 for m in re.finditer(r"`((?:references|scripts|integrations)/[^`\s]+|SPEC\.md)`", skill):
     if not (ROOT / m.group(1)).exists():
         fail(f"SKILL.md mentions missing file: {m.group(1)}")

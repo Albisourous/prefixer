@@ -23,9 +23,9 @@ codebases. They attack different halves of the problem:
 ## The honest overlap
 
 graphify's README pitches "cut agent token spend by 80%". Prefixer
-measures 85% mean bytes saved on its own repo (77% specifically on
-Graphify-Labs/graphify). These are not contradictory — they are
-different denominators:
+measures 79% mean bytes saved across its 18-repo corpus (81%
+specifically on Graphify-Labs/graphify). These are not contradictory —
+they are different denominators:
 
 - **Prefixer's number** is bytes of *search output*: same grep at repo
   root vs inside the namespace's scope. Raw, per-search, reproducible

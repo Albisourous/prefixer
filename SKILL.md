@@ -10,7 +10,7 @@ description: |
   codebase cheaper or more token-efficient for agents.
 license: MIT
 metadata:
-  version: "0.10.0"
+  version: "0.11.0"
 allowed-tools:
   - read
   - grep

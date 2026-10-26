@@ -15,6 +15,6 @@
   <rect x="40" y="325" width="1120" height="550" rx="40" fill="none" stroke="#30363d" stroke-width="2"/>
   <text x="600" y="585" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="150" font-weight="700" letter-spacing="2"><tspan fill="url(#acc)">Prefix</tspan><tspan fill="#e6edf3">:</tspan><tspan fill="#7d8a97">er</tspan></text>
   <text x="600" y="665" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="30" font-weight="400" letter-spacing="8" fill="#9aa7b4">SCOPED CODE SEARCH FOR AI AGENTS</text>
-  <text x="600" y="755" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="26" fill="#2dd4bf">85% fewer search bytes — measured on 13 public repos</text>
+  <text x="600" y="755" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="26" fill="#2dd4bf">79% fewer search bytes — measured on 18 public repos</text>
   <text x="600" y="805" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="22" fill="#8b949e">markdown + shell · works with Devin, Claude Code, Codex, Cursor</text>
 </svg>

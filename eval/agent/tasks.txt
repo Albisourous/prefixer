@@ -1,0 +1,11 @@
+# task suite for eval/agent/run.sh — one task per line:
+#   id | prompt | expected_path | expected_symbol
+# expected_path is the file the correct answer names; expected_symbol is
+# the identifier inside it. Both must appear in the agent's final output
+# for the run to count as a success. Keep prompts identical across
+# conditions — the only difference between runs is the map, never the ask.
+t1 | This repo is a payments-platform monorepo. Find where session expiry is enforced and reply with the file path and function name only. | src/auth/session.ts | expireSession
+t2 | This repo is a payments-platform monorepo. Find the refund calculation logic and reply with the file path and function name only. | src/billing/refunds.ts | calculateRefund
+t3 | This repo is a payments-platform monorepo. Find the retry/backoff logic used by the payments gateway client and reply with the file path and function name only. | src/billing/client.ts | retryPayment
+t4 | This repo is a payments-platform monorepo. Find where inbound webhook signatures are verified and reply with the file path and function name only. | src/api/webhooks.ts | verifySignature
+t5 | This repo is a payments-platform monorepo. Find the component that renders the checkout cart and reply with the file path and function name only. | frontend/checkout/Cart.tsx | renderCheckout

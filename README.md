@@ -92,6 +92,13 @@ lint status) in
 `bash scripts/eval_repo.sh <repo>` on your own repo gets your numbers;
 `eval_scope.sh <repo> <pattern> <prefix>` measures a single query.
 
+**Behavior, not just bytes:** `eval/agent/run.sh` runs a fixed task suite
+through a real agent CLI (Devin or Claude Code), once with the map
+injected and once without, logging every tool call through a hook —
+searches, output bytes, first-try-scoped rate, answer correctness.
+Synthetic fixture, identical prompts, `--reps` for distributions. See
+[eval/agent/](eval/agent/README.md).
+
 ## Good fit if you
 
 - run AI coding agents over large repos or **many repos** and want fewer,
@@ -228,7 +235,7 @@ agents/openai.yaml        OpenAI-compatible agent display data
   for "how does X connect to Y" and architecture onboarding. Prefixer
   answers a smaller question — "which directory should this search hit
   first" — with a 12-line file, no install, no pipeline. They stack:
-  graphify for understanding, prefixer to keep everyday greps cheap (77%
+  graphify for understanding, prefixer to keep everyday greps cheap (81%
   of search bytes saved on graphify's own repo). Full comparison, plus
   the packaging patterns worth borrowing from graphify's repo:
   [docs/vs-graphify.md](docs/vs-graphify.md).
