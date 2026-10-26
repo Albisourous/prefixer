@@ -13,7 +13,7 @@ maps to a concrete agent behavior:
 
 | Position of the prefix | Mechanism | Evidence | Payoff |
 |---|---|---|---|
-| Before a search query / file pattern | Narrows the candidate space before scanning | Practitioner convention (`repo:`, `path:`, `file:` qualifiers; aider repo-map) | Fewer tool calls, smaller result sets → fewer tokens |
+| Before a search query / file pattern | Narrows the candidate space before scanning | Practitioner convention (`repo:`, `path:`, `file:` qualifiers; aider repo-map) + trajectory studies: read/search ≈ 46-76% of agent tokens (FastContext, SWE-Pruner) and localization aids pay off at lower cost (LocAgent) | Fewer tool calls, smaller result sets → fewer tokens |
 | Before a document/chunk at index time | Shifts embeddings into a tighter, domain-coherent region | Index-Time Prefix Injection (ACL 2026 Industry); Anthropic Contextual Retrieval | +3-8% Hit@5; -49% retrieval failures (-67% with rerank) |
 | At the front of a prompt | KV cache is a byte-exact *prefix* match; stable-first ordering preserves it | Anthropic/OpenAI/Meta prompt-caching docs | Lower input-token cost, lower TTFT |
 | Before the whole session (rules/skill metadata) | Always-loaded stable context shapes every turn after it | blader/humanizer (a prefix for prose); skills/RULES files everywhere | Behavior change with zero per-task tokens |
@@ -115,6 +115,30 @@ Organized by the pillar each result supports. Full links in
 13. **Aider repo-map.** Practitioner precedent for a small, token-cheap index
     file the agent reads once to orient instead of scanning the tree;
     `NAMESPACES.md` is the namespace-flavored version.
+
+13b. **Direct evidence for the core claim.** The papers above support the
+    adjacent prefix positions; the core claim, that agents burn most of
+    their budget exploring, has its own literature now:
+
+    - **FastContext (arXiv:2606.14066).** Trajectory analysis of 300
+      Mini-SWE-Agent runs on SWE-bench Multilingual: reading and
+      searching take 56.2% of tool turns and 46.5% of total tokens, and
+      unresolved issues explore *more* than resolved ones (8.34 vs 6.67
+      pre-edit turns). The tax the map is designed to shrink.
+    - **SWE-Pruner (arXiv:2601.16746).** Task-aware context pruning cuts
+      agent tokens 23-54% on SWE-bench while *improving* success rates:
+      less irrelevant context is not just cheaper, it is better. Prefixer
+      is the upstream move; pruning filters what scoped search already
+      avoided fetching.
+    - **LocAgent (ACL 2025, arXiv:2503.09089).** Code localization treated
+      as a first-class bottleneck: a graph-guided locator hits 92.7%
+      file-level accuracy at ~86% lower cost and lifts issue resolution
+      +12% Pass@10. The heavyweight, per-task version of what a 12-line
+      map does for free: get the agent to the right subtree first.
+    - **Chroma, "Context Rot" (2025).** 18 frontier models degrade as
+      input length grows even on tasks that stay easy; distractors in the
+      haystack are part of the mechanism. The accuracy case for scoped
+      output, not just the token case.
 
 14. **Li & Liang, "Prefix-Tuning" (ACL 2021, arXiv:2101.00190); terminology
     note.** Prefix-tuning trains *continuous soft prefixes* on frozen models.
@@ -434,6 +458,18 @@ Before shipping (superpowers TDD-for-skills, adapted):
 - Pan, Z. et al. (2024). *LLMLingua-2: Data Distillation for Efficient and
   Faithful Task-Agnostic Prompt Compression.*
   https://arxiv.org/abs/2403.12968
+
+**Agent search cost**
+
+- Chen, Z. et al. (2025). *LocAgent: Graph-Guided LLM Agents for Code
+  Localization.* ACL 2025. https://arxiv.org/abs/2503.09089
+- Wang, Y. et al. (2026). *SWE-Pruner: Self-Adaptive Context Pruning for
+  Coding Agents.* https://arxiv.org/abs/2601.16746
+- *FastContext: Training Efficient Repository Explorer for Coding
+  Agents.* https://arxiv.org/abs/2606.14066
+- Hong, K. et al. (2025). *Context Rot: How Increasing Input Tokens
+  Impacts LLM Performance.* Chroma research report.
+  https://www.trychroma.com/research/context-rot
 
 **Context as artifact**
 
