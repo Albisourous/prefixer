@@ -22,7 +22,18 @@ case "${1:-}" in
   devin|claude|all) platform="$1"; shift ;;
   auto) shift ;;
 esac
-root="$(map_root "${1:-$PWD}")"; cd "$root" || exit 1
+case "${1:-}" in
+  -*) echo "usage: install_hook.sh [devin|claude|all] [repo-root]" >&2; exit 2 ;;
+esac
+# map_root can return nothing (bad dir arg) or '/' (nothing repo-like up
+# the tree): on bash 3.2 `cd ""` stays put and would write the hooks
+# config into whatever cwd the caller happens to be in
+root="$(map_root "${1:-$PWD}")"
+if [ -z "$root" ] || [ "$root" = / ]; then
+  echo "no repo root from '${1:-$PWD}'; run inside a repo or pass a path" >&2
+  exit 1
+fi
+cd "$root" || exit 1
 
 # script path the hook will call — repo-relative when possible so a
 # project install travels with the repo

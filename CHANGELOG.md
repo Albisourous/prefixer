@@ -46,6 +46,22 @@ metrics reader, and a style sweep that the validator now enforces.
   `.devin/hooks.v1.json` in claude's nested `{"hooks":{...}}` shape;
   devin's file is the hooks object itself (per
   `integrations/hooks.devin.json`), so PostToolUse logging never fired.
+- **Second audit pass, seven more fixes.** `eval_scope.sh` accepts the
+  documented `tag:` spelling (a trailing colon no longer routes to a tag
+  lookup that can never match), refuses an ambiguous bare leaf the same
+  way `search.sh` does, and flags `dir/**` scopes that resolve entirely
+  inside generated dirs as `baseline_excluded` instead of reporting
+  `pct_saved: 100` for a search of nothing. `search.sh`'s ambiguity
+  refusal now prints each candidate's scope instead of an empty slot.
+  `check_namespaces.sh` coverage counts `dir/**` scopes against their
+  own subdirs (a double-slash prefix bug made every child warn). Map
+  indentation counts any whitespace, so a tab-indented row composes the
+  same tag in `search.sh --list`, `check_namespaces.sh`, and
+  `visualize.py`. `visualize.py` reports a usage error instead of an
+  IndexError when `-o`/`--max-files` lacks a value. `install_hook.sh`
+  refuses a root that resolves to nothing or `/`, where `cd` would
+  silently stay put and write `.devin/hooks.v1.json` into the caller's
+  cwd, and it rejects flag-shaped positional args.
 - **No em/en dashes in user-facing text.** Swept README, CHANGELOG,
   SKILL.md, SPEC.md, DESIGN.md, references/, docs/, generated strings in
   `report.html`, and CLI output; `validate-package.py` now fails on new

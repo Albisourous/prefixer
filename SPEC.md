@@ -35,7 +35,7 @@ existing lines.
   (directory names, dominant file tokens), never an invented category.
   Unique within its parent level only.
 - **Indentation is structure.** A row whose prefix cell starts with
-  spaces nests under the most recent shallower row; its full tag is the
+  whitespace nests under the most recent shallower row; its full tag is the
   ancestor chain: parent `payments:` + nested `checkout:` composes
   `payments:checkout:`. Depth is bounded by need, not by the format.
 - Readers ignore leading whitespace on a row line: a table nested in a

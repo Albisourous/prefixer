@@ -576,23 +576,34 @@ def main(argv):
     if args and not args[0].startswith("-"):
         root, args = Path(args[0]).resolve(), args[1:]
     out_path, do_eval, open_it, max_files = None, True, False, 60
+
+    def usage():
+        print("usage: visualize.py [repo-root] [-o OUT] [--no-eval] "
+              "[--max-files N] [--open]", file=sys.stderr)
+        return 2
+
     i = 0
     while i < len(args):
         a = args[i]
-        if a == "-o":
+        if a in ("-o", "--max-files"):
             i += 1
-            out_path = Path(args[i])
+            if i >= len(args):
+                return usage()
+            if a == "-o":
+                out_path = Path(args[i])
+            else:
+                try:
+                    max_files = int(args[i])
+                except ValueError:
+                    return usage()
+                if max_files < 1:
+                    return usage()
         elif a == "--no-eval":
             do_eval = False
         elif a == "--open":
             open_it = True
-        elif a == "--max-files":
-            i += 1
-            max_files = int(args[i])
         else:
-            print(f"usage: visualize.py [repo-root] [-o OUT] [--no-eval] "
-                  f"[--max-files N] [--open]", file=sys.stderr)
-            return 2
+            return usage()
         i += 1
 
     map_path = root / ".prefixer" / "namespaces.md"

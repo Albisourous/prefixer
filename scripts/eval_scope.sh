@@ -10,6 +10,7 @@ set -uo pipefail
 root="${1:-.}"
 pat="${2:?usage: eval_scope.sh [repo] <pattern> <prefix> [scope] [--log]}"
 ns="${3:?usage: eval_scope.sh [repo] <pattern> <prefix> [scope] [--log]}"
+ns="${ns%:}" # the documented spelling ends in ':' (auth:sso:)
 log="" scope=""
 for a in "${@:4}"; do
   case "$a" in --log) log="--log" ;; *) scope="$a" ;; esac
@@ -24,8 +25,16 @@ if [ -z "$scope" ]; then
   if [[ "$ns" == *:* ]]; then
     scope="$(tag_scope "$ns" "$map")"
   else
-    # exact-match the "name:" cell — no regex, so dots and dashes are safe
-    scope="$(leaf_scope "$ns" "$map")"
+    # a bare leaf may sit under several parents — SPEC requires
+    # reporting ambiguity, not first-matching (same rule search.sh runs)
+    matches="$(scope_pairs "$map" | awk -F'\t' -v n="$ns" \
+      '$2 == n { print $1 "\t" $3 }')"
+    if [ "$(printf '%s' "$matches" | grep -c .)" -gt 1 ]; then
+      echo "'${ns}:' is ambiguous; qualify it:" >&2
+      printf '%s' "$matches" | awk -F'\t' '{ printf "  %s: -> %s\n", $1, $2 }' >&2
+      exit 1
+    fi
+    scope="$(printf '%s' "$matches" | cut -f2)"
   fi
   [ -n "$scope" ] || { echo "no prefix '${ns}:' in $map" >&2; exit 1; }
 fi
@@ -55,16 +64,33 @@ scope_files "$scope" > "$plist"
 # comparing two different universes — flag it instead of emitting a
 # meaningless (often wildly negative) pct_saved
 bex=0 have=0 allx=1
+path_excluded() { # path → 0 if some component sits on the skip list
+  local rest="$1"
+  while :; do
+    skipped_gen "${rest%%/*}" && return 0
+    case "$rest" in */*) rest="${rest#*/}" ;; *) break ;; esac
+  done
+  return 1
+}
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   have=1
-  rest="$f" ex=0
-  while :; do
-    skipped_gen "${rest%%/*}" && { ex=1; break; }
-    case "$rest" in */*) rest="${rest#*/}" ;; *) break ;; esac
-  done
-  [ "$ex" -eq 0 ] && { allx=0; break; }
+  path_excluded "$f" || { allx=0; break; }
 done < "$plist"
+# dir/** scopes reach no files at all: scope_files prunes generated dirs
+# before listing, so the excluded check above sees an empty list. Walk
+# the raw tokens instead — a literal dir that exists but prunes is the
+# same out-of-baseline target
+if [ "$have" -eq 0 ]; then
+  while IFS= read -r tok; do
+    [ -z "$tok" ] && continue
+    case "$tok" in *'/**') tok="${tok%\*\*}" ;; esac
+    case "$tok" in *'*'*|*'?'*) continue ;; esac # globs: undecidable here
+    [ -e "$tok" ] || continue
+    have=1
+    path_excluded "$tok" || { allx=0; break; }
+  done <<< "$(expand_scope "$scope")"
+fi
 [ "$have" -eq 1 ] && [ "$allx" -eq 1 ] && bex=1
 while IFS= read -r f; do
   grep -nI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"

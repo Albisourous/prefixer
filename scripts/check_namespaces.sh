@@ -35,7 +35,9 @@ while IFS= read -r line; do
   case "$name" in ''|prefix|-*) continue ;; esac
 
   rows=$((rows+1))
-  indent="$(printf '%s' "$pf" | sed 's/[^ ].*//')"
+  # whitespace, not just space: a tab-indented row nests the same way
+  # scope_pairs and visualize.py read it
+  indent="$(printf '%s' "$pf" | sed 's/[^[:space:]].*//')"
   lvl=${#indent}
 
   case "$name" in todo-*) fail "draft prefix: ${name}:" ;; esac
@@ -86,7 +88,9 @@ cover() { # dirname → 0 if a scope claims it, its parent, or lives inside it
   while IFS= read -r tok; do
     case "$tok" in
       "$d"|"$d/"*) return 0 ;;
-      *'/**') [ "${d#"${tok%\*\*}/"}" != "$d" ] && return 0 ;;
+      # ${tok%\*\*} already ends in '/' — appending another made the
+      # prefix 'src//' and no subdir ever matched
+      *'/**') [ "${d#"${tok%\*\*}"}" != "$d" ] && return 0 ;;
     esac
   done <<< "$scopes_all"
   return 1

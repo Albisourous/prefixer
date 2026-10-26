@@ -846,5 +846,100 @@ esac
 [ -f "$tmp/dfx/.prefixer/namespaces.md" ] && grep -q "| billing:" "$tmp/dfx/.prefixer/namespaces.md" \
   && echo "ok   fixture map scaffolds clean (billing: row present)" || { echo "FAIL fixture map scaffolds clean"; fail=1; }
 
+# --- eval_scope.sh: the documented 'tag:' spelling resolves ------------
+es="$tmp/evalscope"; mkdir -p "$es/game/ui" "$es/.prefixer"
+echo 'needleZ' > "$es/game/ui/f.ts"
+cat > "$es/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: es
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| game: | game/** | game code |
+|   ui: | game/ui/** | ui code |
+EOF
+out="$(cd "$es" && bash "$here/eval_scope.sh" . needleZ 'game:' 2>/dev/null)"
+case "$out" in
+  *'"ns":"game"'*) echo "ok   eval_scope accepts trailing-colon leaf" ;;
+  *) echo "FAIL eval_scope accepts trailing-colon leaf: $out"; fail=1 ;;
+esac
+out="$(cd "$es" && bash "$here/eval_scope.sh" . needleZ 'game:ui:' 2>/dev/null)"
+case "$out" in
+  *'"ns":"game:ui"'*) echo "ok   eval_scope accepts trailing-colon tag" ;;
+  *) echo "FAIL eval_scope accepts trailing-colon tag: $out"; fail=1 ;;
+esac
+
+# --- eval_scope.sh: ambiguous bare leaf is refused, not first-matched --
+out="$(cd "$cq" && bash "$here/eval_scope.sh" . needleX checkout 2>&1 || true)"
+case "$out" in
+  *ambiguous*"payments:checkout"*"orders:checkout"*)
+    echo "ok   eval_scope reports ambiguous leaf" ;;
+  *) echo "FAIL eval_scope reports ambiguous leaf: $out"; fail=1 ;;
+esac
+
+# --- eval_scope.sh: dir/** into a skipped dir reports honestly ---------
+bx="$tmp/bexcl"; mkdir -p "$bx/dist" "$bx/src" "$bx/.prefixer"
+echo 'needleB' > "$bx/dist/bundle.js"; echo 'needleB' > "$bx/src/s.ts"
+out="$(cd "$bx" && bash "$here/eval_scope.sh" . needleB gen 'dist/**' 2>/dev/null)"
+case "$out" in
+  *'"pct_saved":null'*'"baseline_excluded":true'*)
+    echo "ok   dir/** into skipped dir flags baseline_excluded" ;;
+  *) echo "FAIL dir/** into skipped dir flags baseline_excluded: $out"; fail=1 ;;
+esac
+
+# --- check_namespaces.sh: dir/** covers its own subdirs -----------------
+cv="$tmp/cover"; mkdir -p "$cv/src/a" "$cv/src/b" "$cv/.prefixer"
+echo x > "$cv/src/a/f.ts"; echo x > "$cv/src/b/f.ts"
+cat > "$cv/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: cv
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| src: | src/** | sources |
+EOF
+out="$(cd "$cv" && bash "$here/check_namespaces.sh" . 2>/dev/null || true)"
+case "$out" in
+  *uncovered*) echo "FAIL dir/** covers subdirs: $out"; fail=1 ;;
+  *) echo "ok   dir/** covers subdirs" ;;
+esac
+
+# --- tab-indented rows nest identically in the awk parsers --------------
+tb="$tmp/tabs"; mkdir -p "$tb/pay/co" "$tb/.prefixer"
+printf 'x\n' > "$tb/pay/co/f.ts"
+printf '# namespaces\nrepo: tb\n\n| prefix | scope | contains |\n|---|---|---|\n| pay: | pay/** | pay |\n|\t\tco: | pay/co/** | co |\n' \
+  > "$tb/.prefixer/namespaces.md"
+out="$(cd "$tb" && bash "$here/search.sh" --list 2>/dev/null)"
+case "$out" in
+  *"pay:co:"*) echo "ok   tab-indented row composes its tag" ;;
+  *) echo "FAIL tab-indented row composes its tag: $out"; fail=1 ;;
+esac
+
+# --- visualize.py: missing option value is a usage error, not a crash ---
+if out="$(python3 "$here/visualize.py" "$tmp" -o 2>&1)"; then rc=0; else rc=$?; fi
+case "$out" in
+  *IndexError*|*Traceback*) echo "FAIL -o without value crashes: $out"; fail=1 ;;
+  *usage:*) [ "$rc" -eq 2 ] && echo "ok   visualize -o without value is a usage error" \
+    || { echo "FAIL visualize -o without value is a usage error: rc=$rc"; fail=1; } ;;
+  *) echo "FAIL visualize -o without value is a usage error: $out"; fail=1 ;;
+esac
+
+# --- install_hook.sh: bogus root writes nothing into cwd ----------------
+ih="$tmp/ihcwd"; mkdir -p "$ih"
+out="$(cd "$ih" && bash "$here/install_hook.sh" devin /does/not/exist 2>&1 || true)"
+if [ -e "$ih/.devin/hooks.v1.json" ]; then
+  echo "FAIL install_hook writes into caller cwd on bad root"; fail=1
+else
+  case "$out" in
+    *'no repo root'*) echo "ok   install_hook refuses a bad root" ;;
+    *) echo "FAIL install_hook refuses a bad root: $out"; fail=1 ;;
+  esac
+fi
+out="$(cd "$ih" && bash "$here/install_hook.sh" devin --root x 2>&1 || true)"
+case "$out" in
+  *usage:*) echo "ok   install_hook rejects flag-shaped args" ;;
+  *) echo "FAIL install_hook rejects flag-shaped args: $out"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

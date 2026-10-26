@@ -81,14 +81,16 @@ resolve() { find . "${GEN_PRUNE[@]}" -o -print | sed 's|^\./||' | grep -cE "$(gl
 
 # one line per map row: composed tag, leaf name, scope — tab-separated.
 # Ancestor tags rebuild from indentation: rows arrive depth-first, so the
-# last row seen at any shallower level is this row's parent.
+# last row seen at any shallower level is this row's parent. Any leading
+# whitespace indents — a tab nests the same as spaces, matching
+# visualize.py's lstrip() so every tool reads one tag.
 scope_pairs() { # map-file
   awk -F'|' '
     /^[[:space:]]*\|/ {
       pf=$2; sc=$3; name=pf
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
       if (name == "" || name == "prefix" || name ~ /^-/) next
-      ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
+      ind = pf; sub(/[^[:space:]].*/, "", ind); lvl = length(ind)
       for (i in t) if (i >= lvl) delete t[i]
       par = ""
       for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
@@ -107,23 +109,13 @@ tag_scope() { # want-tag, map → scope
       pf=$2; sc=$3; name=pf
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
       if (name == "" || name == "prefix" || name ~ /^-/) next
-      ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
+      ind = pf; sub(/[^[:space:]].*/, "", ind); lvl = length(ind)
       for (i in t) if (i >= lvl) delete t[i]
       par = ""
       for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
       tag = (par == "" ? name : par ":" name); t[lvl] = tag
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
       if (tag == want) { print sc; exit }
-    }' "$2"
-}
-
-# leaf prefix → its scope, exact-matching the "name:" cell — no regex,
-# so dots and dashes are safe
-leaf_scope() { # leaf-name, map → scope
-  awk -F'|' -v n="$1" '
-    /^[[:space:]]*\|/ {
-      pf = $2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", pf)
-      if (pf == n ":") { sc = $3; gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc); print sc; exit }
     }' "$2"
 }
 

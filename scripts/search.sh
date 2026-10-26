@@ -66,7 +66,7 @@ case "$(printf '%s' "$matches" | grep -c .)" in
   *) if [ "$(printf '%s' "$matches" | grep -c .)" -gt 1 ] &&
         ! printf '%s' "$matches" | awk -F'\t' -v n="$ns" '$1 == n' | grep -q .; then
        echo "'${ns}:' is ambiguous; qualify it:" >&2
-       printf '%s' "$matches" | awk -F'\t' '{ printf "  %s: -> %s\n", $1, $3 }' >&2
+       printf '%s' "$matches" | awk -F'\t' '{ printf "  %s: -> %s\n", $1, $2 }' >&2
        exit 2
      fi ;;
 esac
