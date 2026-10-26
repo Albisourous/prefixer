@@ -54,15 +54,46 @@ v0.1.0 — first cut. Layout follows the humanizer model: one canonical
 
 ## Install
 
-- **Manual (works everywhere):** copy `SKILL.md`, `references/`, and
-  `scripts/` into `.agents/skills/prefixer/` in your project — Devin, Codex,
-  Copilot CLI, and Gemini all read that path. For Devin you can also use
-  `.devin/skills/prefixer/`.
-- **Claude Code:** `/plugin marketplace add Albisourous/prefixer`
-- **skills.sh:** `npx skills add Albisourous/prefixer` (once listed)
+### Devin
 
-Then invoke with `/prefixer`, or let the agent trigger it when a task needs
-repeated codebase search.
+The repo root *is* the skill, so install is one command.
+
+**Global — every project on your machine:**
+
+```bash
+git clone https://github.com/Albisourous/prefixer ~/.config/devin/skills/prefixer
+```
+
+Update later with `git -C ~/.config/devin/skills/prefixer pull`.
+
+**Project-level — committed for the team** (fetch a tarball so no nested
+`.git` lands in your repo):
+
+```bash
+mkdir -p .devin/skills/prefixer
+curl -L https://github.com/Albisourous/prefixer/archive/refs/heads/main.tar.gz \
+  | tar -xz --strip-components=1 -C .devin/skills/prefixer
+git add .devin/skills/prefixer
+```
+
+`.agents/skills/prefixer/` works as the project path too — Devin reads both.
+
+Then invoke with `/prefixer` in a session, or let the agent fire it itself —
+the `triggers: [user, model]` frontmatter allows it when a task needs
+repeated codebase search, and `allowed-tools` pre-approves
+read/grep/glob/exec/edit so it runs without permission prompts.
+
+### Claude Code
+
+```
+/plugin marketplace add Albisourous/prefixer
+```
+
+### Other agents
+
+Copy `SKILL.md`, `references/`, and `scripts/` into
+`.agents/skills/prefixer/` — Codex, Copilot CLI, and Gemini read that path.
+Or `npx skills add Albisourous/prefixer` once listed on skills.sh.
 
 ## Layout
 
