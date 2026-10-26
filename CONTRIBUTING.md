@@ -9,9 +9,11 @@ open an issue first.
 ```bash
 python3 scripts/validate-package.py   # frontmatter, version sync, links
 bash scripts/test_scaffold.sh         # fixture test: derivation, lint, eval
+pre-commit install                    # optional: same gates on every commit
 ```
 
-Both run in CI on every PR. A change that fails either one will not merge.
+Both run in CI on every PR, plus the official `agentskills` spec
+validator. A change that fails any of them will not merge.
 
 ## Rules that keep the skill working
 

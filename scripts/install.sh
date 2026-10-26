@@ -6,7 +6,7 @@
 #   bash scripts/install.sh                auto-detect, project if marked, else global
 #   bash scripts/install.sh --global       user-level install for detected hosts
 #   bash scripts/install.sh --project      into ./.<host>/skills/prefixer/
-#   bash scripts/install.sh --platform devin|claude|agents|all [--project|--global]
+#   bash scripts/install.sh --platform devin|claude|windsurf|agents|all [--project|--global]
 #
 # Copies SKILL.md + SPEC.md + references/ + scripts/ and stamps
 # .prefixer_version beside them so stale installs are detectable.
@@ -36,9 +36,10 @@ version="$(sed -n 's/^  version: *"\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$src/SKILL.m
 # framework path — Codex, Copilot CLI, Gemini, Cursor all read it.
 dest() {
   case "$1" in
-    claude) [ "$2" = global ] && echo "$HOME/.claude/skills/prefixer" || echo ".claude/skills/prefixer" ;;
-    devin)  [ "$2" = global ] && echo "$HOME/.config/devin/skills/prefixer" || echo ".devin/skills/prefixer" ;;
-    agents) [ "$2" = global ] && echo "$HOME/.agents/skills/prefixer" || echo ".agents/skills/prefixer" ;;
+    claude)   [ "$2" = global ] && echo "$HOME/.claude/skills/prefixer" || echo ".claude/skills/prefixer" ;;
+    devin)    [ "$2" = global ] && echo "$HOME/.config/devin/skills/prefixer" || echo ".devin/skills/prefixer" ;;
+    windsurf) [ "$2" = global ] && echo "$HOME/.codeium/windsurf/skills/prefixer" || echo ".windsurf/skills/prefixer" ;;
+    agents)   [ "$2" = global ] && echo "$HOME/.agents/skills/prefixer" || echo ".agents/skills/prefixer" ;;
   esac
 }
 
@@ -46,19 +47,20 @@ dest() {
 detected() {
   for p in $platforms; do
     case "$p" in
-      claude) [ -d .claude ] || [ -d "$HOME/.claude" ] && echo "$p" ;;
-      devin)  [ -d .devin ] || [ -d "$HOME/.config/devin" ] && echo "$p" ;;
-      agents) [ -d .agents ] || [ -d "$HOME/.agents" ] && echo "$p" ;;
+      claude)   [ -d .claude ] || [ -d "$HOME/.claude" ] && echo "$p" ;;
+      devin)    [ -d .devin ] || [ -d "$HOME/.config/devin" ] && echo "$p" ;;
+      windsurf) [ -d .windsurf ] || [ -d "$HOME/.codeium/windsurf" ] && echo "$p" ;;
+      agents)   [ -d .agents ] || [ -d "$HOME/.agents" ] && echo "$p" ;;
     esac
   done
 }
 
-platforms="claude devin agents"
+platforms="claude devin windsurf agents"
 case "$platform" in
   "") targets="$(detected)" ;;
   all) targets="$platforms" ;;
-  claude|devin|agents) targets="$platform" ;;
-  *) echo "unknown platform: $platform (want claude|devin|agents|all)" >&2; exit 2 ;;
+  claude|devin|windsurf|agents) targets="$platform" ;;
+  *) echo "unknown platform: $platform (want claude|devin|windsurf|agents|all)" >&2; exit 2 ;;
 esac
 
 # nothing detected: default to the spec path so the install still lands
@@ -70,9 +72,10 @@ esac
 resolve_scope() {
   [ -n "$scope" ] && { echo "$scope"; return; }
   case "$1" in
-    claude) [ -d .claude ] && echo project || echo global ;;
-    devin)  [ -d .devin ] && echo project || echo global ;;
-    agents) [ -d .agents ] && echo project || echo global ;;
+    claude)   [ -d .claude ] && echo project || echo global ;;
+    devin)    [ -d .devin ] && echo project || echo global ;;
+    windsurf) [ -d .windsurf ] && echo project || echo global ;;
+    agents)   [ -d .agents ] && echo project || echo global ;;
   esac
 }
 
@@ -96,7 +99,7 @@ for p in $targets; do
   cp -R "$src/scripts" "$d/scripts"
   # repo-side dev tooling is not part of the skill
   rm -rf "$d/scripts/__pycache__"
-  rm -f "$d/scripts/test_scaffold.sh" "$d/scripts/validate-package.py"
+  rm -f "$d/scripts/test_scaffold.sh" "$d/scripts/validate-package.py" "$d/scripts/bump-version.py"
   printf '%s\n' "${version:-unknown}" > "$d/.prefixer_version"
   installed="$installed  $d ($sc)
 "

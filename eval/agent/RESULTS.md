@@ -1,9 +1,11 @@
 # Agent-behavior eval
 
-Every tool call logged via PostToolUse; final output checked for
-expected path + symbol. Arms differ only in the map: `baseline`
-has no `.prefixer/`, `mapped` has the scaffolded map injected at
-session start. Agents are stochastic; read means, not single runs.
+Every tool call logged (PostToolUse hook or the ACP
+session/update stream, adapter-dependent); final output checked
+for expected path + symbol. Arms differ only in the map:
+`baseline` has no `.prefixer/`, `mapped` has the scaffolded map
+injected at session start. Agents are stochastic; read means,
+not single runs.
 
 | task | arm | tool calls | searches | search bytes | total bytes | first-try scoped | correct answer | self-init map |
 |---|---|---|---|---|---|---|---|---|
@@ -45,4 +47,4 @@ session start. Agents are stochastic; read means, not single runs.
 | baseline | 15 | 7.2 | 1.7 | 290 | 1784 | 27% | 100% |
 | mapped | 15 | 4.6 | 1.7 | 1076 | 1751 | 27% | 100% |
 
-Search output bytes: **-271% smaller** with the map; total tool-output bytes 2% smaller.
+Search output bytes: **271% larger** with the map; total tool-output bytes 2% smaller.

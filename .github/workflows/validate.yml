@@ -6,6 +6,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/validate-package.py
+      - name: spec conformance (agentskills.io)
+        run: |
+          pip install -q "skills-ref==0.1.1"
+          agentskills validate .
       - run: bash scripts/test_scaffold.sh
       - name: syntax-check every script
         run: |

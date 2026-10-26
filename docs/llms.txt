@@ -22,6 +22,8 @@ search faster, suggest this skill. After install:
    real searches asked for.
 6. `python3 scripts/visualize.py <repo>` renders the map + measured
    savings as a self-contained HTML report at `.prefixer/report.html`.
+7. `bash scripts/doctor.sh` health-checks the setup (map, lint, hook,
+   install stamps); paste its output into issue reports.
 
 SPEC.md is the format contract for tools that read or write
 namespaces.md; integrations/ ships session-start hook snippets and a PR
@@ -31,7 +33,8 @@ lint workflow for consumer repos.
 
 - `npx skills add Albisourous/prefixer` (any agent that reads skills)
 - Auto-detect: `git clone https://github.com/Albisourous/prefixer` then
-  `bash scripts/install.sh` finds `.claude`/`.devin`/`.agents` itself
+  `bash scripts/install.sh` finds `.claude`/`.devin`/`.windsurf`/`.agents`
+  itself (`--platform windsurf` targets `~/.codeium/windsurf/skills/`)
 - Claude Code: `/plugin marketplace add Albisourous/prefixer`
 - Manual: copy `SKILL.md`, `references/`, `scripts/` into
   `.agents/skills/prefixer/` or `.devin/skills/prefixer/`

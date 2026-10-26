@@ -1,0 +1,27 @@
+# Run with: pre-commit install   (https://pre-commit.com)
+# One-off across the tree: pre-commit run --all-files
+#
+# These are the same gates .github/workflows/validate.yml runs; the hook
+# catches a failure at commit time instead of at the PR.
+repos:
+  - repo: local
+    hooks:
+      - id: validate-package
+        name: validate-package (frontmatter, version sync, links, style)
+        entry: python3 scripts/validate-package.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: bash-syntax
+        name: bash -n on every script
+        entry: bash -c 'shopt -s nullglob; for s in scripts/*.sh eval/*.sh eval/agent/*.sh eval/agent/adapters/*.sh; do bash -n "$s" || exit 1; done'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: scaffold-tests
+        name: test_scaffold fixture suite
+        entry: bash scripts/test_scaffold.sh
+        language: system
+        pass_filenames: false

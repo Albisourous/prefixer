@@ -7,8 +7,8 @@
 An agent skill for scoped codebase search. It gives agents a small
 namespace map so searches stay in the right part of the tree, which means
 fewer tokens spent on irrelevant hits: **79% of search-output bytes
-saved, measured across 18 public repos.** Works with Devin, Claude Code,
-Codex, Cursor, and other agents that read skills. `references/` also ships
+saved, measured across 18 public repos.** Works with Devin, Windsurf,
+Claude Code, Codex, Cursor, and other agents that read skills. `references/` also ships
 playbooks for index-time doc prefixes and prompt-cache ordering.
 
 <p>
@@ -25,6 +25,7 @@ playbooks for index-time doc prefixes and prompt-cache ordering.
 npx skills add Albisourous/prefixer        # install the skill
 bash .agents/skills/prefixer/scripts/init_namespaces.sh   # scaffold your repo's map
 bash .agents/skills/prefixer/scripts/install_hook.sh      # optional: inject the map at session start
+bash .agents/skills/prefixer/scripts/doctor.sh            # health-check the whole setup
 ```
 
 Every agent session then reads `.prefixer/namespaces.md` and searches
@@ -96,6 +97,12 @@ lint status) in
 through a real agent CLI (Devin or Claude Code), once with the map
 injected and once without, logging every tool call through a hook:
 searches, output bytes, first-try-scoped rate, answer correctness.
+Latest 15-run aggregate: mapped sessions averaged **4.6 tool calls per
+task vs 7.2** without the map, 100% correct answers both ways. On the
+~140-file fixture per-search output ran larger in the mapped arm; at
+that size the map sits near its break-even, which the size gate already
+predicts. The corpus table above carries the byte claim; the harness
+answers whether agents actually change how they search.
 Synthetic fixture, identical prompts, `--reps` for distributions. See
 [eval/agent/](eval/agent/README.md).
 
@@ -140,8 +147,9 @@ bash /tmp/prefixer/scripts/install.sh --platform devin --project
 |---|---|
 | Any skills-aware agent (Codex, Copilot CLI, Gemini, Cursor) | `npx skills add Albisourous/prefixer` |
 | Claude Code | `/plugin marketplace add Albisourous/prefixer` |
-| Devin (global) | `git clone …/prefixer ~/.config/devin/skills/prefixer` |
-| Devin (project) | tarball extract into `.devin/skills/prefixer/` (below) |
+| Devin CLI (global) | `git clone …/prefixer ~/.config/devin/skills/prefixer` |
+| Devin CLI (project) | tarball extract into `.devin/skills/prefixer/` (below) |
+| Windsurf | `bash scripts/install.sh --platform windsurf` (`.windsurf/skills/` or `~/.codeium/windsurf/skills/`) |
 | Manual | copy `SKILL.md` + `references/` + `scripts/` into `.agents/skills/prefixer/` |
 
 </details>
@@ -170,10 +178,10 @@ git add .devin/skills/prefixer
 
 `.agents/skills/prefixer/` works as the project path too. Devin reads both.
 
-Invoke it with `/prefixer` in a session, or let the agent fire it itself.
-The `triggers: [user, model]` frontmatter allows that when a task needs
-repeated codebase search, and `allowed-tools` pre-approves read, grep,
-glob, exec, and edit so it runs without permission prompts.
+Invoke it with `/prefixer` in a session, or let the agent fire it itself
+when a task needs repeated codebase search (the default user+model
+triggers). `allowed-tools` pre-approves read, grep, glob, exec, and edit
+so it runs without permission prompts.
 
 ### Claude Code
 
@@ -194,7 +202,7 @@ or run `npx skills add Albisourous/prefixer`. It is listed on
 SKILL.md                  canonical skill (root, single file)
 SPEC.md                   the namespaces.md format contract
 references/               deep-dives loaded on demand
-scripts/                  scaffold, lint, search, suggest, measure, eval, hooks, validate, test, visualize
+scripts/                  scaffold, lint, search, suggest, measure, doctor, eval, hooks, validate, test, visualize
 integrations/             session-start hook snippets + PR lint workflow for consumer repos
 eval/                     public-repo corpus + weekly RESULTS.md
 agents/openai.yaml        OpenAI-compatible agent display data
@@ -256,6 +264,13 @@ agents/openai.yaml        OpenAI-compatible agent display data
 - Gim et al., *Prompt Cache* (MLSys 2024): arXiv:2311.04934
 - Zhang et al., *Agentic Context Engineering* (ICLR 2026): arXiv:2510.04618
 - Full list in [DESIGN.md §9](DESIGN.md#9-references)
+
+## Community
+
+- Help and bug reports: [SUPPORT.md](SUPPORT.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Security reports: [SECURITY.md](SECURITY.md) · maintainer releases: [RELEASING.md](RELEASING.md)
+- Road to 1.0: [ROADMAP.md](ROADMAP.md)
 
 ## License
 

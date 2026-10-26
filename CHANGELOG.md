@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.0.0] - 2026-10-26
+
+First stable release. The skill, scripts, spec, and eval harness from
+0.x carry over unchanged; 1.0 adds the release machinery, community
+files, spec conformance, and a one-command health check a public
+project needs.
+
+- **`scripts/doctor.sh`: one-command health check.** Reports the map,
+  lint verdict, session-start hook state, metrics gitignore coverage,
+  and stale install stamps (`.prefixer_version` vs the running
+  checkout). `ok`/`warn`/`FAIL` lines, nonzero exit on failures,
+  `--quiet` for CI. SUPPORT.md and the bug-report form now ask for its
+  output.
+- **`scripts/bump-version.py`: one-command release bump.** Rewrites the
+  version in SKILL.md, all three plugin manifests, docs/index.html's
+  `softwareVersion`, and the `integrations/` CI pin, then opens a dated
+  CHANGELOG section. `RELEASING.md` documents the full process, and
+  `release.yml` creates the GitHub release when a `v*` tag lands,
+  gated on validation, tests, and real changelog notes.
+- **agentskills.io spec conformance.** Added the `compatibility` field
+  (bash + POSIX tools; Python 3 for visualize.py) and dropped the
+  `triggers` field: the official validator rejects non-spec
+  frontmatter, and `[user, model]` is Devin's default anyway, so the
+  field was redundant. The official `skills-ref` validator now runs in
+  CI pinned at `skills-ref==0.1.1`.
+- **`install.sh` gains a `windsurf` platform.** Project
+  `.windsurf/skills/prefixer`, global `~/.codeium/windsurf/skills/prefixer`,
+  matching the paths Devin's docs publish. Detection markers:
+  `.windsurf/` and `~/.codeium/windsurf/`.
+- **Community files.** `CODE_OF_CONDUCT.md` (Contributor Covenant),
+  `SUPPORT.md`, `ROADMAP.md` (the 1.0 tracker), and a
+  `.pre-commit-config.yaml` that runs the CI gates on commit.
+- **`summarize.py` honest phrasing.** A negative byte delta now reads
+  "N% larger" instead of "-N% smaller"; RESULTS.md regenerated.
+- **`validate-package.py` gains a check:** the consumer workflow's
+  script-fetch pin must equal the release version.
+- README, docs site, and llms.txt synced: windsurf install, doctor.sh,
+  and the agent-eval aggregate numbers (4.6 vs 7.2 mean tool calls per
+  task, mapped vs baseline).
+
 ## [0.11.1] - 2026-10-26
 
 Bug-fix release: scaffold allocation, eval honesty, installer safety, a

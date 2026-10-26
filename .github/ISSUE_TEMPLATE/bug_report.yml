@@ -16,6 +16,12 @@ body:
       placeholder: bash scripts/init_namespaces.sh /path/to/repo → produced ...
     validations:
       required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: doctor.sh output
+      description: "Run `bash <skill>/scripts/doctor.sh` at the repo root and paste what it prints"
+      render: text
   - type: input
     id: env
     attributes:

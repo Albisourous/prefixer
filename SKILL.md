@@ -9,17 +9,16 @@ description: |
   unrelated parts of the tree, or when the user asks how to make their
   codebase cheaper or more token-efficient for agents.
 license: MIT
+compatibility: Requires bash and standard POSIX tools (grep, find, sed,
+  awk); scripts/visualize.py also needs Python 3. No network access.
 metadata:
-  version: "0.11.1"
+  version: "1.0.0"
 allowed-tools:
   - read
   - grep
   - glob
   - exec
   - edit
-triggers:
-  - user
-  - model
 ---
 
 # Prefixer: scope first, widen on miss, log the delta
@@ -257,6 +256,7 @@ These thoughts mean stop. You are rationalizing.
 - `scripts/report_metrics.sh`: read the log back: hit rate, scope spend, delta
 - `scripts/session_start.sh`: emit the map (+ health) for session-start hooks
 - `scripts/install_hook.sh`: wire the SessionStart hook for devin/claude
+- `scripts/doctor.sh`: health-check a repo's setup: map, lint, hook, install stamps
 - `scripts/eval_scope.sh`: measure the token delta of a scoped search vs root
 - `scripts/eval_repo.sh`: lint + eval every namespace in a map, mean % saved
 - `scripts/visualize.py`: render the map on the file tree + the measured savings as an HTML report

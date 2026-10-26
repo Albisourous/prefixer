@@ -175,8 +175,12 @@ def main():
                        / agg["baseline"]["search_bytes"])
         tsaved = 100 * (1 - agg["mapped"]["total_bytes"]
                         / agg["baseline"]["total_bytes"])
-        print(f"\nSearch output bytes: **{saved:.0f}% smaller** with the "
-              f"map; total tool-output bytes {tsaved:.0f}% smaller.")
+        # a negative delta is a real result (small fixtures, wide globs):
+        # phrase it as "N% larger", never "-N% smaller"
+        def delta(pct):
+            return f"{pct:.0f}% smaller" if pct >= 0 else f"{-pct:.0f}% larger"
+        print(f"\nSearch output bytes: **{delta(saved)}** with the "
+              f"map; total tool-output bytes {delta(tsaved)}.")
 
 
 if __name__ == "__main__":

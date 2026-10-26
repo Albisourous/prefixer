@@ -25,8 +25,10 @@ the prompt agents read, and the source of truth. There is no build step.
 ## Invariants
 
 - **Version:** the same version in `metadata.version` (SKILL.md
-  frontmatter), `CHANGELOG.md`'s first heading, and every
-  `*-plugin/plugin.json`.
+  frontmatter), `CHANGELOG.md`'s first heading, every
+  `*-plugin/plugin.json`, and `docs/index.html`'s `softwareVersion`.
+  `scripts/bump-version.py X.Y.Z` rewrites all of them at once; release
+  steps live in `RELEASING.md`.
 - **Description:** plugin manifests reuse the first sentence of the SKILL.md
   description.
 - **Length:** every word of SKILL.md is read on each use. Cap is 5,500

@@ -89,6 +89,12 @@ sv_m = re.search(r'"softwareVersion":\s*"([\w.\-]+)"', read("docs/index.html"))
 if version and sv_m and sv_m.group(1) != version:
     fail(f"docs/index.html: softwareVersion {sv_m.group(1)} != SKILL.md {version}")
 
+# the consumer CI template pins its script fetches at the release tag;
+# bump-version.py rewrites it, the validator keeps it honest
+map_yml = read("integrations/github-map-check.yml")
+if version and map_yml and f"prefixer/v{version}/scripts" not in map_yml:
+    fail(f"integrations/github-map-check.yml: script fetches not pinned at v{version}")
+
 for m in re.finditer(r"`((?:references|scripts|integrations)/[^`\s]+|SPEC\.md)`", skill):
     if not (ROOT / m.group(1)).exists():
         fail(f"SKILL.md mentions missing file: {m.group(1)}")

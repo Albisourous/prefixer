@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prefixer: scoped codebase search for AI agents · 79% fewer search tokens</title>
-<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search. Fewer tokens, faster searches: measured 79% mean search bytes saved across 18 public repos. Works with Devin, Claude Code, Codex, and Cursor.">
-<meta name="keywords" content="prefixer, agent skill, code search, codebase search, namespace map, AI coding agent, scoped search, token efficiency, reduce agent tokens, prompt caching, Devin skill, Claude Code skill, Cursor skill, Codex skill, agent skills, codebase navigation, repo map, graphify alternative, llm token cost">
+<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search. Fewer tokens, faster searches: measured 79% mean search bytes saved across 18 public repos. Works with Devin, Windsurf, Claude Code, Codex, and Cursor.">
+<meta name="keywords" content="prefixer, agent skill, code search, codebase search, namespace map, AI coding agent, scoped search, token efficiency, reduce agent tokens, prompt caching, Devin skill, Claude Code skill, Cursor skill, Codex skill, Windsurf skill, agent skills, codebase navigation, repo map, graphify alternative, llm token cost">
 <meta name="robots" content="index,follow">
 <meta name="author" content="Albisourous">
 <link rel="canonical" href="https://albisourous.github.io/prefixer/">
@@ -28,7 +28,7 @@
   "@type": "SoftwareSourceCode",
   "name": "prefixer",
   "alternateName": "Prefixer agent skill",
-  "softwareVersion": "0.11.1",
+  "softwareVersion": "1.0.0",
   "description": "An agent skill for scoped codebase search. A namespace map keeps agent searches inside the right part of the tree; playbooks cover index-time doc prefixes and prompt-cache ordering.",
   "codeRepository": "https://github.com/Albisourous/prefixer",
   "programmingLanguage": "Shell",
@@ -50,7 +50,7 @@
      "acceptedAnswer": {"@type": "Answer", "text": "Most token waste in agent sessions comes from repo-wide searches dumping irrelevant hits into context. Prefixer gives the agent a namespace map so searches run inside the right directory first. On an 18-repo public corpus it measured 79% mean fewer search-output bytes."}},
     {"@type": "Question", "name": "Why does my AI agent read the whole codebase?",
      "acceptedAnswer": {"@type": "Answer", "text": "Because nothing tells it where things live. .prefixer/namespaces.md is that missing file: a short table of prefixes to scopes, derived from the codebase's own vocabulary, that every session reads before searching."}},
-    {"@type": "Question", "name": "Does prefixer work with Claude Code, Devin, Codex, and Cursor?",
+    {"@type": "Question", "name": "Does prefixer work with Claude Code, Devin, Codex, Cursor, and Windsurf?",
      "acceptedAnswer": {"@type": "Answer", "text": "Yes. It is a portable skill, plain markdown and shell. Install with npx skills add Albisourous/prefixer, the Claude plugin marketplace, or copy SKILL.md into .agents/skills/prefixer/."}},
     {"@type": "Question", "name": "Is prefixer an MCP server or a service?",
      "acceptedAnswer": {"@type": "Answer", "text": "No. It is markdown files and shell scripts. Nothing runs in the background, nothing calls an API."}},
@@ -160,7 +160,7 @@ start scoped, widen on a miss, and land in the right files first.</p>
 service. One <code>SKILL.md</code>, five reference playbooks, and a small
 toolkit for scaffolding, linting, measuring, and evaluating. It works with
 any agent that reads skills:
-<a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, and friends.</p>
+<a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, Windsurf, and friends.</p>
 
 <div class="stats">
   <div class="stat"><strong>79%</strong><span>mean search bytes saved, 18-repo corpus</span></div>
@@ -331,7 +331,7 @@ and RadixAttention.
   every session reads before searching.</p>
 </details>
 <details>
-  <summary>Does it work with Claude Code, Devin, Codex, and Cursor?</summary>
+  <summary>Does it work with Claude Code, Devin, Codex, Cursor, and Windsurf?</summary>
   <p>Yes. It is a portable skill, plain markdown and shell. Install with
   <code>npx skills add Albisourous/prefixer</code>, the Claude plugin
   marketplace, or copy <code>SKILL.md</code> into

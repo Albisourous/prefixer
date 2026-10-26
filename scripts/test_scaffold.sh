@@ -941,5 +941,41 @@ case "$out" in
   *) echo "FAIL install_hook rejects flag-shaped args: $out"; fail=1 ;;
 esac
 
+# --- doctor.sh: healthy map, missing map, broken map, hook state -------
+out="$(cd "$srch" && bash "$here/doctor.sh" 2>&1)"
+case "$out" in
+  *"map present, 2 rows"*"doctor: healthy"*) echo "ok   doctor green on healthy repo" ;;
+  *) echo "FAIL doctor green on healthy repo: $out"; fail=1 ;;
+esac
+
+dno="$tmp/dnomap"; mkdir -p "$dno"; ( cd "$dno" && git init -q )
+rc=0; out="$(cd "$dno" && bash "$here/doctor.sh" 2>&1)" || rc=$?
+case "$out" in
+  *"FAIL no .prefixer/namespaces.md"*) [ "$rc" -eq 1 ] \
+    && echo "ok   doctor fails without a map" \
+    || { echo "FAIL doctor fails without a map (rc=$rc)"; fail=1; } ;;
+  *) echo "FAIL doctor fails without a map: $out"; fail=1 ;;
+esac
+
+rc=0; out="$(cd "$bad" && bash "$here/doctor.sh" 2>&1)" || rc=$?
+case "$out" in
+  *"FAIL lint:"*) [ "$rc" -eq 1 ] && echo "ok   doctor fails on a broken map" \
+    || { echo "FAIL doctor fails on a broken map (rc=$rc)"; fail=1; } ;;
+  *) echo "FAIL doctor fails on a broken map: $out"; fail=1 ;;
+esac
+
+out="$(cd "$hk" && bash "$here/doctor.sh" 2>&1 || true)"
+case "$out" in
+  *"session-start hook wired"*) echo "ok   doctor sees the wired hook" ;;
+  *) echo "FAIL doctor sees the wired hook: $out"; fail=1 ;;
+esac
+
+out="$(cd "$bad" && bash "$here/doctor.sh" --quiet 2>&1 || true)"
+case "$out" in
+  *"repo root:"*) echo "FAIL --quiet hides ok lines"; fail=1 ;;
+  *"FAIL lint:"*) echo "ok   --quiet prints only problems" ;;
+  *) echo "FAIL --quiet prints only problems: $out"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }
