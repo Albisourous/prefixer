@@ -116,9 +116,13 @@ The fix is the same pattern `AGENTS.md` already uses: have the harness
 emit the map at session start so it lands in the stable prompt prefix,
 and every search starts scoped with zero discipline required.
 
-Hook names vary by harness (a `SessionStart` hook, a session-start hook
-dir, a startup-context block); the recipe is always the same — print the
-map into session context:
+Shipped wiring makes this concrete: `scripts/install_hook.sh` writes the
+hook for Devin (`.devin/hooks.v1.json`) or Claude Code
+(`.claude/settings.json`), pointing at `scripts/session_start.sh` — which
+emits the map plus a one-line lint verdict inside the
+`additionalContext` envelope, so a stale map is loud at session start.
+Hand snippets live in `integrations/`; the minimal recipe for any other
+harness is still just:
 
 ```sh
 cat .prefixer/namespaces.md 2>/dev/null

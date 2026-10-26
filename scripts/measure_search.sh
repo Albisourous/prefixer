@@ -55,11 +55,9 @@ if [ -z "$scope" ]; then
 fi
 
 # anchor at the .prefixer/ beside the map, else git toplevel, else cwd
-up="$PWD"
-until [ -d "$up/.prefixer" ] || [ "$up" = "/" ]; do up="$(dirname "$up")"; done
-if [ -d "$up/.prefixer" ]; then root="$up"
-elif root="$(git rev-parse --show-toplevel 2>/dev/null)"; then :
-else root="$PWD"; fi
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/lib_scope.sh"
+root="$(map_root "$PWD")"
 
 mkdir -p "$root/.prefixer"
 grep -qx 'metrics.jsonl' "$root/.prefixer/.gitignore" 2>/dev/null ||

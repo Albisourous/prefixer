@@ -5,51 +5,19 @@
 # usage: check_namespaces.sh [repo-root]
 set -uo pipefail
 
+here="$(cd "$(dirname "$0")" && pwd)"
+# scope grammar, exclusion lists: scripts/lib_scope.sh (single copy)
+. "$here/lib_scope.sh"
+
 root="${1:-.}"
 # cd first: a relative $root would otherwise break every $map read below
 cd "$root" 2>/dev/null || { echo "cannot cd $root" >&2; exit 1; }
 map=".prefixer/namespaces.md"
 [ -f "$map" ] || { echo "no map at $root/$map" >&2; exit 1; }
 fails=0 warns=0 rows=0
-skip="node_modules vendor dist build target out .git .prefixer __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
 
 fail() { echo "FAIL $1"; fails=$((fails+1)); }
 warn() { echo "warn $1"; warns=$((warns+1)); }
-
-skipped_gen() { case " $skip " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
-
-# scope tokens without eval: expand {a,b} arm-wise, then split commas —
-# spaces inside names survive and nothing ever runs as shell
-expand_scope() {
-  local s="$1" pre mid post arm
-  case "$s" in
-    *'{'*)
-      pre="${s%%\{*}"; post="${s#*\}}"
-      mid="${s#*\{}"; mid="${mid%%\}*}"
-      local IFS=','
-      for arm in $mid; do
-        arm="$(printf '%s' "$arm" | sed 's/^ *//; s/ *$//')"
-        expand_scope "$pre$arm$post"
-      done ;;
-    *) printf '%s\n' "$s" | tr ',' '\n' | sed 's/^ *//; s/ *$//' ;;
-  esac
-}
-
-# glob → anchored regex with real shell-glob semantics: * stays inside
-# its dir level, ** crosses, ? is one non-/ char — find -path gets this
-# wrong, its * matches slashes too (dead scopes would sail through).
-# scopes are repo-relative and root-anchored: *.md matches root files
-# only; a leading / means the same thing, not absolute path
-glob_re() {
-  printf '%s' "$1" | sed -e 's|^/||' -e 's/[.+^$|()]/\\&/g' -e 's/\*\*/@@/g' \
-    -e 's/\*/[^\/]*/g' -e 's/\?/[^\/]/g' \
-    -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
-}
-
-# does a scope token resolve to at least one real path under .?
-# grep -c, not -q: -q exits on first match, SIGPIPEs find, and pipefail
-# then reports failure for a successful match
-resolve() { find . | sed 's|^\./||' | grep -cE "$(glob_re "$1")" >/dev/null 2>&1; }
 
 grep -q '^repo:' "$map" || warn "no repo: header; add 'repo: <slug>' for multi-codebase uniqueness"
 
@@ -94,7 +62,7 @@ while IFS= read -r line; do
   while IFS= read -r tok; do
     [ -z "$tok" ] && continue
     case "$tok" in
-      node_modules/*|node_modules|vendor/*|dist/*|build/*|target/*|coverage/*|*-out/*|*-out)
+      node_modules/*|node_modules|vendor/*|dist/*|build/*|target/*|coverage/*|*-out/*|*-out|.work|.work/*|*/.work|*/.work/*)
         genflag=1 ;;
     esac
     resolve "$tok" && live=$((live+1))
@@ -127,7 +95,7 @@ while IFS= read -r raw; do
   scopes_all="$scopes_all$(expand_scope "$raw")
 "
 done <<EOF
-$(awk -F'|' '/^\|/ { print $3 }' "$map" | sed 's/^[ \t]*//; s/[ \t]*$//')
+$(awk -F'|' '/^\|/ { print $3 }' "$map" | sed 's/^[[:blank:]]*//; s/[[:blank:]]*$//')
 EOF
 for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
@@ -136,7 +104,9 @@ for d in */ .[!.]*/; do
   [ -z "$(find "$d" -type f -not -name '.*' -print -quit 2>/dev/null)" ] && continue
   cover "$name" || warn "uncovered top dir: $name/"
 done
-for parent in src lib app packages apps services modules libs; do
+repo_slug="$(grep -m1 '^repo:' "$map" | sed 's/^repo: *//')"
+for parent in src lib app packages apps services modules libs crates cmd \
+              internal pkg plugins themes components tools server $repo_slug; do
   [ -d "$parent" ] || continue
   for d in "$parent"/*/; do
     [ -d "$d" ] || continue

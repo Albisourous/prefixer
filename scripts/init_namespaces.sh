@@ -23,12 +23,14 @@ mkdir -p "$root/.prefixer"
 grep -qx 'metrics.jsonl' "$root/.prefixer/.gitignore" 2>/dev/null ||
   echo 'metrics.jsonl' >> "$root/.prefixer/.gitignore"
 
-skip="node_modules vendor dist build target out .git .prefixer __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
+here="$(cd "$(dirname "$0")" && pwd)"
+# exclusion list + skipped_gen: scripts/lib_scope.sh (single copy)
+. "$here/lib_scope.sh"
 
 # generated dirs inflate this count and misjudge the marginal-map note —
 # prune them, plus dot dirs, before counting real files
 nameargs=()
-for s in $skip; do nameargs+=(-o -name "$s"); done
+for s in $PREFIXER_SKIP; do nameargs+=(-o -name "$s"); done
 files=$(find "$root" \( -type d \( "${nameargs[@]:1}" \) -prune \) -o \
   -type f -not -path '*/.*' -print 2>/dev/null | wc -l | tr -d ' ')
 
@@ -37,29 +39,19 @@ stop_re='^(index|main|mod|init|utils?|helpers?|common|shared|base|file|code|misc
 
 max_rows=12 rows=0
 
-skipped_gen() { case " $skip " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
-
 # an empty dir scopes nothing — skip it rather than emit a dead row
-has_files() { find "$1" -type f -not -name '.*' -print -quit 2>/dev/null | grep -q .; }
+has_files() { find "$1" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print -quit 2>/dev/null | grep -q .; }
 
 # camelCase/kebab/snake dir name → words
 dir_parts() {
   basename "$1" | sed 's/\([a-z0-9]\)\([A-Z]\)/\1 \2/g; s/[-_.]/ /g' | tr 'A-Z' 'a-z'
 }
 
-# most frequent meaningful word in the file basenames under $1
-file_token() {
-  find "$1" -type f -not -name '.*' 2>/dev/null | head -400 | xargs -n1 basename 2>/dev/null |
-    sed 's/\.[^.]*$//; s/\([a-z0-9]\)\([A-Z]\)/\1 \2/g; s/[-_.]/ /g' |
-    tr 'A-Z' 'a-z' | tr ' ' '\n' |
-    grep -vE "$stop_re" | awk 'length($0)>=3' |
-    sort | uniq -c | sort -rn | awk 'NR==1{print $2}'
-}
-
-# derived, not declared: short dir name, distinguishing segment, dominant
-# file token, then the full name — there is always a real name to propose
+# derived, not declared: short dir name, distinguishing segment, then a
+# deterministic shortening of the name itself. A dominant file token
+# mislabels the scope — undici: for .changeset/ is a map that lies
 pfx() { # dirname, dirpath, sibling-names...
-  local name="$1" path="$2" sib w n tok
+  local name="$1" sib w n short
   shift 2
   [ "${#name}" -le 8 ] && { printf '%s' "$name"; return; }
   for w in $(dir_parts "$name"); do
@@ -70,9 +62,10 @@ pfx() { # dirname, dirpath, sibling-names...
     done
     [ "$n" -le 1 ] && { printf '%s' "$w"; return; }
   done
-  tok="$(file_token "$path" || true)"
-  [ -n "$tok" ] && { printf '%s' "$tok" | cut -c1-8; return; }
-  printf '%s' "$name"
+  [ "${#name}" -le 12 ] && { printf '%s' "$name"; return; }
+  # very long name: keep the first char, drop vowels — still the real name
+  short="$(printf '%s' "$name" | cut -c1)$(printf '%s' "$name" | cut -c2- | tr -d 'aeiou' | cut -c1-11)"
+  printf '%s' "$short"
 }
 
 # first meaningful comment line in a file — the module's own doc text.
@@ -89,7 +82,9 @@ doc_line() {
       sub(/[[:space:]]*(\*+\/|"""+)[[:space:]]*$/, "", line)
       low = tolower(line)
       if (low ~ /copyright|licen[cs]e|spdx|vim:|coding[:=]|@file|@brief|@author|generated|do not edit/) next
-      if (split(line, w, /[[:space:]]+/) >= 3 && length(line) >= 15) { print line; exit }
+      an = gsub(/[A-Za-z0-9]/, "&", line)
+      if (split(line, w, /[[:space:]]+/) >= 3 && length(line) >= 15 &&
+          an >= length(line) * 0.45) { print line; exit }
     }'
 }
 
@@ -107,7 +102,7 @@ syms() {
 # the useful search is names/inventory, and the map should say so
 is_binary_dir() { # dirpath → 0 if at least half the files are binary
   local files total text
-  files="$(find "$1" -type f -not -name '.*' -print0 2>/dev/null |
+  files="$(find "$1" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print0 2>/dev/null |
     tr '\0' '\n' | head -40 || true)"
   [ -n "$files" ] || return 1
   total="$(printf '%s\n' "$files" | grep -c .)"
@@ -123,12 +118,26 @@ desc_for() { # dirname, dirpath
   local doc line names sample symtext list pref f
   for doc in AGENTS.md CLAUDE.md README.md; do
     [ -f "$root/$doc" ] || continue
-    line="$(grep -iwFm1 -- "$1" "$root/$doc" 2>/dev/null | sed 's/^[#*|> 	-]*//' | cut -c1-72)"
+    # the first whole-word hit is usually a badge, a link, or ASCII art —
+    # skip link markup and lines that are mostly punctuation. Then rank:
+    # a 'name/' path mention early in the line is the dir being described;
+    # a bare word deep in a line (github.com, public/sprites/) is a
+    # mention in passing — prefer subject lines, fall back to earliest hit
+    line="$(grep -F -- "$1" "$root/$doc" 2>/dev/null |
+      grep -vF '](' |
+      awk '{ an=gsub(/[A-Za-z0-9]/,"&"); if (an >= length($0)*0.45) print }' |
+      awk -v n="$1" '
+        { p = index($0, n "/")
+          if (p) { print "0", p, $0; next }
+          p = index($0, n)
+          if (p) print "1", p, $0 }' |
+      sort -k1,1n -k2,2n | head -1 | cut -d' ' -f3- |
+      sed 's/^[#*|> 	-]*//' | cut -c1-72)"
     if [ -n "$line" ]; then printf '%s' "$line"; return; fi
   done
   # representative files: name-sharing first (auth/AuthService.ts speaks
   # for auth/), then the rest — deterministic order for a stable map
-  list="$(find "$2" -type f -not -name '.*' -not -name '*.min.*' 2>/dev/null | sort | head -60)"
+  list="$(find "$2" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -not -name '*.min.*' -print 2>/dev/null | sort | head -60)"
   pref="$(printf '%s\n' "$list" | grep -iF -- "$1" 2>/dev/null | head -6)"
   for f in $pref $(printf '%s\n' "$list" | grep -ivF -- "$1" 2>/dev/null | head -6); do
     sample="$(doc_line "$f" | cut -c1-72)"
@@ -155,21 +164,32 @@ emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
   p="${p// /-}"   # prefixes are tags, not display names — no spaces
   # prefixes need only be unique within their parent level — a nested
   # checkout: under payments: and orders: reads orders:checkout: vs
-  # payments:checkout:, already distinct
+  # payments:checkout:, already distinct. Flat rows all share the top
+  # level though, so a same-named child under two parents collides on
+  # display — qualify it with its parent dir (plugins/claude-api →
+  # plugins-claude-api) rather than emitting a draft todo- prefix
   key="${parent:-top}:$p"
   case " $used_pfx " in *" $key "*)
-    [ -n "$parent" ] && p="$parent-$name" || p="todo-$name" ;;
+    stem="${scope%/\*\*}"
+    case "$stem" in
+      */*) p="${stem%%/*}-$name" ;;
+      *)   p="$stem" ;;
+    esac ;;
   esac
   case " $used_pfx " in *" ${parent:-top}:$p "*) p="todo-$name" ;; esac
   used_pfx="$used_pfx ${parent:-top}:$p"
   last_pfx="$p"
   if is_binary_dir "$path"; then
-    names="$(find "$path" -type f -not -name '.*' 2>/dev/null | head -40 |
-      sed 's|.*/||; s/\.[^.]*$//' | sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
+    names="$(find "$path" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print 2>/dev/null | head -40 |
+      sed 's|.*/||; s/\.[^.]*$//' | sort -u | head -3 | paste -sd, - |
+      sed 's/,/, /g' | tr -d '|\r')"
     printf '| %s%s: | %s | names only — binary assets: %s |\n' "$indent" "$p" "$scope" "${names:-files}"
     return
   fi
-  printf '| %s%s: | %s | %s |\n' "$indent" "$p" "$scope" "$(desc_for "$name" "$path")"
+  # contains goes into a table cell — pipes make phantom cells, CRs make
+  # phantom line breaks; both corrupt the map for every consumer
+  printf '| %s%s: | %s | %s |\n' "$indent" "$p" "$scope" "$(desc_for "$name" "$path" |
+    tr -d '|\r' | tr '\n' ' ' | sed 's/  */ /g; s/ *$//')"
 }
 
 # unique repo qualifier for multi-codebase contexts — from the git remote,
@@ -190,10 +210,13 @@ for f in "$root"/src/main.* "$root"/src/index.* "$root"/src/cli.* \
 done
 
 # jumbo files: a >3k-line file is too big to read even when the namespace
-# scoped correctly — it earns its own row with declaration landmarks
+# scoped correctly — it earns its own row with declaration landmarks.
+# data/generated heavies (lockfiles, snapshots, baselines, docs, dumps)
+# crowd out real jumbo source, so they are excluded before ranking
 jumbos=""
 cand="$(find "$root" -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null |
-  grep -vE '/(dist|build|target|coverage|out|__pycache__|venv|bin|obj|storybook-static|DerivedData|Pods)/|/[^/]+-out/' || true)"
+  grep -vE '/(dist|build|target|coverage|out|__pycache__|venv|bin|obj|storybook-static|DerivedData|Pods)/|/[^/]+-out/' |
+  grep -vEi '\.(lock|sum|txt|json|jsonc|ya?ml|toml|csv|tsv|xml|html?|css|svg|map|snap|out|log|diff|patch|bin|dat|db|sqlite|ico|png|jpe?g|gif|webp|woff2?|ttf|eot|pdf|zip|gz|tar)$|(__snapshots__|/snapshots?/|/baselines?/|/fixtures?/|\.baseline|reallylarge)' || true)"
 if [ -n "$cand" ]; then
   jumbos="$(printf '%s\n' "$cand" | tr '\n' '\0' | xargs -0 wc -l 2>/dev/null | sort -rn |
     awk '$2 != "total" && $1 > 3000 { c=$1; $1=""; sub(/^ +/,""); print c "\t" $0 }')" || true
@@ -235,8 +258,23 @@ dir_budget=$((max_rows - reserve))
   done
 
   # descend into dirs that hold most of a repo's code, then one level
-  # deeper where a child holds sub-teams (payments → checkout, refunds)
-  for parent in src lib app packages apps services modules libs; do
+  # deeper where a child holds sub-teams (payments → checkout, refunds).
+  # parents: the usual code homes, the project-named dir (django/django),
+  # and any top dir holding >=3 code-bearing child dirs (workspaces like
+  # crates/, Go layouts like cmd/+internal/+pkg/, plugin trees)
+  parents="src lib app packages apps services modules libs crates cmd internal pkg plugins themes components tools server"
+  case " $parents " in *" $slug "*) ;; *) parents="$parents $slug" ;; esac
+  for name in ${topnames[@]+"${topnames[@]}"}; do
+    case " $parents " in *" $name "*) continue ;; esac
+    kc=0
+    for d in "$root/$name"/*/; do
+      [ -d "$d" ] || continue
+      skipped_gen "$(basename "$d")" && continue
+      has_files "$d" && kc=$((kc+1))
+    done
+    [ "$kc" -ge 3 ] && parents="$parents $name"
+  done
+  for parent in $parents; do
     [ -d "$root/$parent" ] || continue
     kids=()
     for d in "$root/$parent"/*/; do
@@ -268,22 +306,28 @@ dir_budget=$((max_rows - reserve))
     done
   done
 
-  # files at repo root are a distinct intent: config, manifests, docs
+  # files at repo root are a distinct intent: config, manifests, docs —
+  # except lockfiles, which are generated output and search-poison
   if [ -n "$rf" ]; then
     rscope="" alldoc=1
     while IFS= read -r f; do
       rel="${f#"$root"/}"
+      case "$rel" in
+        package-lock.json|yarn.lock|pnpm-lock.yaml|Cargo.lock|poetry.lock|Pipfile.lock|go.sum|uv.lock|Gemfile.lock|composer.lock|*.lock) continue ;;
+      esac
       case "$rel" in *.md|*.txt|*.rst|*.adoc) ;; *) alldoc=0 ;; esac
       rscope="${rscope:+$rscope, }$rel"
     done <<< "$rf"
     [ "$alldoc" -eq 1 ] && rp="doc" || rp="cfg"
     case " $used_pfx " in *" top:$rp "*) rp="todo-$rp" ;; esac
     used_pfx="$used_pfx top:$rp"
-    rows=$((rows + 1))
-    if [ "$alldoc" -eq 1 ]; then
-      printf '| %s: | %s | docs at repo root |\n' "$rp" "$rscope"
-    else
-      printf '| %s: | %s | config, manifests, docs at repo root |\n' "$rp" "$rscope"
+    if [ -n "$rscope" ]; then
+      rows=$((rows + 1))
+      if [ "$alldoc" -eq 1 ]; then
+        printf '| %s: | %s | docs at repo root |\n' "$rp" "$rscope"
+      else
+        printf '| %s: | %s | config, manifests, docs at repo root |\n' "$rp" "$rscope"
+      fi
     fi
   fi
 

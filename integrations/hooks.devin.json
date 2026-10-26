@@ -1,0 +1,13 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash .agents/skills/prefixer/scripts/session_start.sh --json 2>/dev/null || true"
+        }
+      ]
+    }
+  ]
+}

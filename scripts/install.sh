@@ -8,8 +8,8 @@
 #   bash scripts/install.sh --project      into ./.<host>/skills/prefixer/
 #   bash scripts/install.sh --platform devin|claude|agents|all [--project|--global]
 #
-# Copies SKILL.md + references/ + scripts/ and stamps .prefixer_version
-# beside them so stale installs are detectable.
+# Copies SKILL.md + SPEC.md + references/ + scripts/ and stamps
+# .prefixer_version beside them so stale installs are detectable.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -82,7 +82,7 @@ for p in $targets; do
   d="$(dest "$p" "$sc")"
   [ -n "$d" ] || continue
   mkdir -p "$d"
-  cp "$src/SKILL.md" "$d/"
+  cp "$src/SKILL.md" "$src/SPEC.md" "$d/"
   rm -rf "$d/references" "$d/scripts"
   cp -R "$src/references" "$d/references"
   cp -R "$src/scripts" "$d/scripts"

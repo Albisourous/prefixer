@@ -346,5 +346,235 @@ echo "code here" > "$binrepo/src/a.ts"
 bash "$here/init_namespaces.sh" "$binrepo" >/dev/null 2>&1
 check "binary dir marked names-only" 'names only — binary assets' "$binrepo/.prefixer/namespaces.md"
 
+# --- an unbalanced '{' in a scope must not hang the linter
+# (issue #24 — the brace expander recursed forever) ---
+hangr="$tmp/hang"; mkdir -p "$hangr/src" "$hangr/.prefixer"
+echo x > "$hangr/src/a.ts"
+cat > "$hangr/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: hang
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/{a,b | malformed |
+EOF
+out="$(
+  bash "$here/check_namespaces.sh" "$hangr" 2>&1 &
+  pid=$!
+  i=0
+  while [ $i -lt 40 ] && kill -0 "$pid" 2>/dev/null; do i=$((i+1)); sleep 0.25; done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; echo HUNG
+  else
+    wait "$pid" || true
+  fi
+)"
+case "$out" in
+  *HUNG*) echo "FAIL unbalanced brace hangs"; fail=1 ;;
+  *"dead scope"*) echo "ok   unbalanced brace fails, no hang" ;;
+  *) echo "FAIL unbalanced brace fails, no hang"; fail=1 ;;
+esac
+
+# --- BSD sed [ \t] strips literal 't' — a tools/** scope must stay
+# tools/** (issue #26) ---
+tre="$tmp/tscope"; mkdir -p "$tre/tools" "$tre/.prefixer"
+echo x > "$tre/tools/t.ts"
+cat > "$tre/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: tscope
+| prefix | scope | contains |
+|--------|-------|----------|
+| tools: | tools/** | tooling |
+EOF
+tout="$(bash "$here/check_namespaces.sh" "$tre" 2>&1 || true)"
+case "$tout" in
+  *uncovered* | *"dead scope"*) echo "FAIL t-leading scope corrupted"; fail=1 ;;
+  *) echo "ok   t-leading scope intact" ;;
+esac
+
+# --- contains never carries '|' or '\r' into the table (issue #27) ---
+pipe="$tmp/pipecell"; mkdir -p "$pipe/src/api" "$pipe/src/other"
+printf '// see table | col2 for the api layout\nvoid api() {}\n' > "$pipe/src/api/a.ts"
+printf 'plain code\n' > "$pipe/src/other/b.ts"
+bash "$here/init_namespaces.sh" "$pipe" >/dev/null 2>&1
+if [ -n "$(awk -F'|' 'NF>5' "$pipe/.prefixer/namespaces.md")" ]; then
+  echo "FAIL pipe char in contains cells"; fail=1
+else
+  echo "ok   no pipe char in contains cells"
+fi
+if grep -q $'\r' "$pipe/.prefixer/namespaces.md"; then
+  echo "FAIL carriage return in map"; fail=1
+else
+  echo "ok   no carriage returns in map"
+fi
+
+# --- badge/link lines are not contains (issue #28) ---
+badge="$tmp/badge"; mkdir -p "$badge/ci"
+cat > "$badge/README.md" <<'EOF'
+# BadgeRepo
+[![Build status](https://img.shields.io/ci/badge.svg)](https://ci.example.com)
+The ci directory runs the release pipeline and nightly matrix.
+EOF
+echo x > "$badge/ci/run.sh"
+bash "$here/init_namespaces.sh" "$badge" >/dev/null 2>&1
+nocheck "badge line not picked as contains" 'Build status\|img.shields' "$badge/.prefixer/namespaces.md"
+
+# --- incidental doc mentions lose to descriptive path mentions
+# (issue #34: a trailing 'docs/...' path beat the real description) ---
+inc="$tmp/incidental"; mkdir -p "$inc/docs"
+cat > "$inc/README.md" <<'EOF'
+# Game
+src/game/ui.ts draws the menu; spec lives at docs/specs/ui.md path.
+- `docs/` holds all project documentation and design specs.
+EOF
+echo x > "$inc/docs/guide.md"
+bash "$here/init_namespaces.sh" "$inc" >/dev/null 2>&1
+check "subject mention beats incidental" 'project documentation' "$inc/.prefixer/namespaces.md"
+
+# --- long dir names stay name-derived, not a random file token
+# (issue #29: .changeset -> undici:, acceptance/ -> create:) ---
+longn="$tmp/longnames"; mkdir -p "$longn/acceptance" "$longn/src"
+echo 'create flow' > "$longn/acceptance/create_user.ts"
+echo x > "$longn/src/a.ts"
+bash "$here/init_namespaces.sh" "$longn" >/dev/null 2>&1
+check "dir name beats file token"       'acceptance: | acceptance/\*\*' "$longn/.prefixer/namespaces.md"
+
+# --- workspace parents descend: crates/ children get rows (issue #30) ---
+ws="$tmp/workspace"; mkdir -p "$ws/crates/parser" "$ws/crates/lexer" "$ws/crates/fmt"
+echo x > "$ws/crates/parser/p.rs"; echo x > "$ws/crates/lexer/l.rs"; echo x > "$ws/crates/fmt/f.rs"
+bash "$here/init_namespaces.sh" "$ws" >/dev/null 2>&1
+check "crates children get rows"        'parser: | crates/parser/\*\*' "$ws/.prefixer/namespaces.md"
+
+# --- lockfiles stay out of the root-file scope; data files don't take
+# jumbo rows (issue #31) ---
+lk="$tmp/locks"; mkdir -p "$lk/src"
+echo x > "$lk/package.json"; echo x > "$lk/package-lock.json"; echo x > "$lk/Cargo.lock"
+{ for i in $(seq 1 3100); do echo "row $i"; done; } > "$lk/src/bigdata.txt"
+echo x > "$lk/src/a.ts"
+bash "$here/init_namespaces.sh" "$lk" >/dev/null 2>&1
+nocheck "lockfiles out of cfg scope"   'package-lock.json\|Cargo.lock' "$lk/.prefixer/namespaces.md"
+nocheck "data .txt not a jumbo row"    'src/bigdata.txt' "$lk/.prefixer/namespaces.md"
+
+# --- search.sh: scoped hit, widen-on-miss, ambiguity, map-as-index ---
+srch="$tmp/srch"; mkdir -p "$srch/src/auth" "$srch/src/api" "$srch/.prefixer"
+echo 'fn checkSession() { expire() }' > "$srch/src/auth/session.ts"
+echo 'fn handle() {}' > "$srch/src/api/route.ts"
+cat > "$srch/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: srch
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| auth: | src/auth/** | sessions, tokens |
+| api: | src/api/** | handlers |
+EOF
+
+out="$(cd "$srch" && bash "$here/search.sh" auth expire 2>/dev/null)"
+case "$out" in
+  *"src/auth/session.ts"*) echo "ok   scoped search hits" ;;
+  *) echo "FAIL scoped search hits"; fail=1 ;;
+esac
+
+out="$(cd "$srch" && bash "$here/search.sh" api expire 2>/dev/null)"
+case "$out" in
+  *"src/auth/session.ts"*) echo "ok   miss widens to root and finds" ;;
+  *) echo "FAIL miss widens to root and finds"; fail=1 ;;
+esac
+check "widen logged"    '"widened_to":"root"' "$srch/.prefixer/metrics.jsonl"
+check "hit_dirs logged" '"hit_dirs":"src/auth:1"' "$srch/.prefixer/metrics.jsonl"
+check "not first-try"   '"first_try_hit":false' "$srch/.prefixer/metrics.jsonl"
+
+if (cd "$srch" && bash "$here/search.sh" auth no_such_symbol_qzx >/dev/null 2>&1); then
+  echo "FAIL total miss exits 1"; fail=1
+else
+  echo "ok   total miss exits 1"
+fi
+
+out="$(cd "$srch" && bash "$here/search.sh" --scope auth)"
+[ "$out" = "src/auth/**" ] && echo "ok   --scope prints globs" || { echo "FAIL --scope prints globs"; fail=1; }
+out="$(cd "$srch" && bash "$here/search.sh" --paths auth)"
+case "$out" in
+  *"src/auth/session.ts"*) echo "ok   --paths resolves files" ;;
+  *) echo "FAIL --paths resolves files"; fail=1 ;;
+esac
+out="$(cd "$srch" && bash "$here/search.sh" --list)"
+case "$out" in
+  *"auth:"*"api:"*) echo "ok   --list prints tags" ;;
+  *) echo "FAIL --list prints tags"; fail=1 ;;
+esac
+
+# a leaf under two parents is ambiguous — report, don't first-match
+if (cd "$repo" && bash "$here/search.sh" checkout x >/dev/null 2>&1); then
+  echo "FAIL ambiguous leaf refused"; fail=1
+else
+  echo "ok   ambiguous leaf refused"
+fi
+
+# a widened search must not self-hit its own metrics log
+(cd "$srch" && bash "$here/search.sh" --no-log api widened_marker_qzx) >/dev/null 2>&1 || true
+out="$(cd "$srch" && bash "$here/search.sh" --no-log api widened_marker_qzx 2>/dev/null)" || true
+case "$out" in
+  *metrics.jsonl*) echo "FAIL widened search self-hits the log"; fail=1 ;;
+  *) echo "ok   widened search skips .prefixer" ;;
+esac
+
+# --- suggest_map.sh: log + tree → proposed rows -----------------------
+sg="$tmp/suggest"; mkdir -p "$sg/src/api" "$sg/src/core" "$sg/.prefixer"
+echo x > "$sg/src/api/a.ts"; echo 'engine loop' > "$sg/src/core/engine.ts"
+cat > "$sg/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: sg
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/api/** | handlers |
+EOF
+cat > "$sg/.prefixer/metrics.jsonl" <<'EOF'
+{"ts":"2026-10-26T10:00:00Z","task":"scoped-search","ns":"api","pattern":"x","scope":"src/api/**","searches":1,"hits":0,"est_tokens":0,"first_try_hit":false,"widened_to":"root","hit_dirs":"src/core:3"}
+{"ts":"2026-10-26T10:01:00Z","task":"t","pattern":"y","scope":"root","searches":1,"hits":9,"est_tokens":800}
+EOF
+out="$(bash "$here/suggest_map.sh" "$sg" 2>/dev/null)"
+case "$out" in
+  *"core: | src/core/"*) echo "ok   suggests a row for widened-hit dir" ;;
+  *) echo "FAIL suggests a row for widened-hit dir"; fail=1 ;;
+esac
+case "$out" in
+  *"ROOT"*) echo "ok   counts unscoped root searches" ;;
+  *) echo "FAIL counts unscoped root searches"; fail=1 ;;
+esac
+case "$out" in
+  *"HEALTH"*) echo "ok   restates lint health" ;;
+  *) echo "FAIL restates lint health"; fail=1 ;;
+esac
+# a mapped scope is never suggested as ADD
+nocheck "mapped scope not re-suggested" 'api:.*<-' <(printf '%s' "$out")
+
+# --- session_start.sh: silent without a map, envelope with one --------
+nostart="$tmp/nostart"; mkdir -p "$nostart"
+out="$(cd "$nostart" && bash "$here/session_start.sh" 2>/dev/null)"
+[ -z "$out" ] && echo "ok   session_start silent without map" || { echo "FAIL session_start silent without map"; fail=1; }
+out="$(cd "$srch" && bash "$here/session_start.sh" --json)"
+case "$out" in
+  *'"hookSpecificOutput"'*'"SessionStart"'*'auth:'*) echo "ok   session_start emits hook envelope" ;;
+  *) echo "FAIL session_start emits hook envelope"; fail=1 ;;
+esac
+
+# --- install_hook.sh: writes hooks.v1.json, idempotent ----------------
+hk="$tmp/hooked"; mkdir -p "$hk/.devin" "$hk/.prefixer"
+echo x > "$hk/f.ts"
+cp "$srch/.prefixer/namespaces.md" "$hk/.prefixer/namespaces.md"
+( cd "$hk" && bash "$here/install_hook.sh" devin ) >/dev/null 2>&1
+check "hooks.v1.json written"   'SessionStart' "$hk/.devin/hooks.v1.json"
+check "hook calls session_start" 'session_start.sh' "$hk/.devin/hooks.v1.json"
+out="$(cd "$hk" && bash "$here/install_hook.sh" devin 2>&1)"
+case "$out" in
+  *"already wired"*) echo "ok   hook install is idempotent" ;;
+  *) echo "FAIL hook install is idempotent"; fail=1 ;;
+esac
+out="$(cd "$hk" && bash "$here/session_start.sh" --json)"
+case "$out" in
+  *hookSpecificOutput*) echo "ok   wired hook script resolves" ;;
+  *) echo "FAIL wired hook script resolves"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

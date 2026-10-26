@@ -85,14 +85,13 @@ ch_m = re.search(r"^##\s*\[?([\w.\-]+)\]?", changelog, re.M)
 if version and ch_m and ch_m.group(1) != version:
     fail(f"CHANGELOG.md: first version {ch_m.group(1)} != SKILL.md {version}")
 
-for m in re.finditer(r"`((?:references|scripts)/[^`\s]+)`", skill):
+for m in re.finditer(r"`((?:references|scripts|integrations)/[^`\s]+|SPEC\.md)`", skill):
     if not (ROOT / m.group(1)).exists():
         fail(f"SKILL.md mentions missing file: {m.group(1)}")
 
-for s in ("scripts/init_namespaces.sh", "scripts/measure_search.sh"):
-    content = read(s)
-    if content and not content.startswith("#!"):
-        fail(f"{s}: missing shebang")
+for s in sorted((ROOT / "scripts").glob("*.sh")):
+    if not s.read_text(encoding="utf-8").startswith("#!"):
+        fail(f"{s.relative_to(ROOT)}: missing shebang")
 
 if errors:
     for e in errors:

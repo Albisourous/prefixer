@@ -24,10 +24,22 @@ honestly fill:
 | `hits` | per-search lines | result lines the search returned |
 | `tool_calls` | task lines | total tool calls in the task |
 | `first_try_hit` | task lines | answer found inside the first scoped search — agent judgment, or `--hit`/`--miss` on the script |
+| `ns` | search.sh lines | the namespace tag the search started in |
+| `pattern` | search.sh lines | the searched pattern — needed to judge a map gap honestly |
+| `widened_to` | optional | where a widened search found hits: a tag, `root`, or `none` |
+| `hit_dirs` | optional | `dir:count` list of where widened hits clustered — the map-gap signal `suggest_map.sh` reads |
 | `baseline` | optional | `true` marks the pre-change probe line |
 | `error` | optional | `true` marks a probe whose command failed — `hits` is unreliable |
 | `exit` | optional | the probe command's exit status when `error` is set |
 | `notes` | optional | free text |
+
+`scripts/search.sh` is the instrumented path: `search.sh <ns> <pattern>`
+searches inside the tag's globs, widens one level on a miss, and appends
+the per-search line with `ns`, `pattern`, `hits`, `first_try_hit`, and —
+when it had to widen — `widened_to` plus `hit_dirs` naming the
+directories the hits actually landed in. Those fields are what
+`scripts/suggest_map.sh` reads to propose new rows, so searches run
+through `search.sh` feed the flywheel automatically.
 
 `scripts/measure_search.sh` wraps a search command and appends a
 per-search line (`hits`, `scope`) automatically — use it when you want

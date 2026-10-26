@@ -13,3 +13,8 @@ BurntSushi/ripgrep      rust-cli
 shadcn-ui/ui            monorepo
 rust-lang/book          docs-site
 cli/cli                 go-cli
+pallets/flask           python-web
+fastapi/fastapi         python-web
+spf13/cobra             go-cli-lib
+tokio-rs/tokio          rust-async
+google/gson             java-library

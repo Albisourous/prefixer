@@ -4,17 +4,13 @@
       <stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#60a5fa"/>
     </linearGradient>
     <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#8b949e"/>
+      <path d="M0,0 L6,3 L0,6 Z" fill="#aab4be"/>
     </marker>
     <style>
-      text { fill: #57606a; } .t { fill: #24292f; } .hi { fill: #0d9488; font-weight: 700; }
-      .box { fill: none; stroke: #d0d7de; stroke-width: 1.5; }
-      .flow { stroke: #8b949e; stroke-width: 1.5; fill: none; }
+      text { fill: #aab4be; } .t { fill: #e6edf3; } .hi { fill: #2dd4bf; font-weight: 700; }
+      .box { fill: none; stroke: #6e7681; stroke-width: 1.5; }
+      .flow { stroke: #aab4be; stroke-width: 1.5; fill: none; }
       .hit { stroke: #2dd4bf; }
-      @media (prefers-color-scheme: dark) {
-        text { fill: #8b949e; } .t { fill: #e6edf3; } .hi { fill: #2dd4bf; }
-        .box { stroke: #30363d; }
-      }
     </style>
   </defs>
 

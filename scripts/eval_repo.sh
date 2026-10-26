@@ -20,19 +20,8 @@ echo
 
 # one line per row: composed tag, leaf name, scope — tags rebuilt from
 # indentation the same way check_namespaces.sh validates them
-pairs="$(awk -F'|' '
-  /^[[:space:]]*\|/ {
-    pf=$2; sc=$3; name=pf
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
-    if (name == "" || name == "prefix" || name ~ /^-/) next
-    ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
-    for (i in t) if (i >= lvl) delete t[i]
-    par = ""
-    for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
-    tag = (par == "" ? name : par ":" name); t[lvl] = tag
-    gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
-    print tag "\t" name "\t" sc
-  }' "$map")"
+. "$here/lib_scope.sh"
+pairs="$(scope_pairs "$map")"
 
 printf '%-24s %9s %11s %9s %11s %7s\n' "tag" "root_hits" "root_bytes" "ns_hits" "ns_bytes" "pct"
 tot=0; n=0; skipped=0

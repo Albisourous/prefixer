@@ -1,0 +1,32 @@
+# Copy to .github/workflows/prefixer-map.yml in a repo that commits
+# .prefixer/namespaces.md. Fails the PR when a row's globs resolve to
+# nothing, tags collide, a draft row ships, or a generated dir gets
+# mapped. Warnings (uncovered dirs, no repo: header) print but do not
+# fail — the map is allowed to lag a little, not to lie.
+name: prefixer-map
+on:
+  pull_request:
+  push:
+    paths: ['.prefixer/namespaces.md']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the namespace map
+        run: |
+          set -e
+          test -f .prefixer/namespaces.md || { echo "no map — nothing to check"; exit 0; }
+          # prefer a vendored skill copy — the check scripts ship inside it
+          for d in .agents .devin .claude; do
+            s="$d/skills/prefixer/scripts/check_namespaces.sh"
+            if [ -f "$s" ]; then bash "$s" .; exit $?; fi
+          done
+          # not vendored: pin a release tag (never float main in CI)
+          mkdir -p /tmp/pfx
+          for s in check_namespaces.sh lib_scope.sh; do
+            curl -fsSL "https://raw.githubusercontent.com/Albisourous/prefixer/v0.10.0/scripts/$s" -o "/tmp/pfx/$s"
+          done
+          bash /tmp/pfx/check_namespaces.sh .

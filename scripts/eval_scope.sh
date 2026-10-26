@@ -15,24 +15,9 @@ for a in "${@:4}"; do
   case "$a" in --log) log="--log" ;; *) scope="$a" ;; esac
 done
 map="$root/.prefixer/namespaces.md"
-
-# rebuild ancestor tags from indentation — the same parent:child chain
-# check_namespaces.sh validates
-tag_scope() { # want-tag, map → scope
-  awk -F'|' -v want="$1" '
-    /^[[:space:]]*\|/ {
-      pf=$2; sc=$3; name=pf
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
-      if (name == "" || name == "prefix" || name ~ /^-/) next
-      ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
-      for (i in t) if (i >= lvl) delete t[i]
-      par = ""
-      for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
-      tag = (par == "" ? name : par ":" name); t[lvl] = tag
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
-      if (tag == want) { print sc; exit }
-    }' "$2"
-}
+here="$(cd "$(dirname "$0")" && pwd)"
+# scope grammar, exclusion lists: scripts/lib_scope.sh (single copy)
+. "$here/lib_scope.sh"
 
 if [ -z "$scope" ]; then
   [ -f "$map" ] || { echo "no map at $map" >&2; exit 1; }
@@ -40,47 +25,10 @@ if [ -z "$scope" ]; then
     scope="$(tag_scope "$ns" "$map")"
   else
     # exact-match the "name:" cell — no regex, so dots and dashes are safe
-    scope="$(awk -F'|' -v n="$ns" '
-      /^[[:space:]]*\|/ {
-        pf = $2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", pf)
-        if (pf == n ":") { sc = $3; gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc); print sc; exit }
-      }' "$map")"
+    scope="$(leaf_scope "$ns" "$map")"
   fi
   [ -n "$scope" ] || { echo "no prefix '${ns}:' in $map" >&2; exit 1; }
 fi
-
-# scope tokens without eval: expand {a,b} arm-wise, then split commas —
-# spaces inside names survive and nothing ever runs as shell
-expand_scope() {
-  local s="$1" pre mid post arm
-  case "$s" in
-    *'{'*)
-      pre="${s%%\{*}"; post="${s#*\}}"
-      mid="${s#*\{}"; mid="${mid%%\}*}"
-      local IFS=','
-      for arm in $mid; do
-        arm="$(printf '%s' "$arm" | sed 's/^ *//; s/ *$//')"
-        expand_scope "$pre$arm$post"
-      done ;;
-    *) printf '%s\n' "$s" | tr ',' '\n' | sed 's/^ *//; s/ *$//' ;;
-  esac
-}
-
-# glob → anchored regex with real shell-glob semantics: * stays inside
-# its dir level, ** crosses, ? is one non-/ char — find -path gets this
-# wrong, its * matches slashes too. scopes are repo-relative and
-# root-anchored: *.md is root files only, leading / means the same
-glob_re() {
-  printf '%s' "$1" | sed -e 's|^/||' -e 's/[.+^$|()]/\\&/g' -e 's/\*\*/@@/g' \
-    -e 's/\*/[^\/]*/g' -e 's/\?/[^\/]/g' \
-    -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
-}
-
-# real paths a glob token resolves to — dir or file, spaces preserved,
-# no cap: truncating here undercounts ns_bytes and inflates pct_saved
-match_scope() {
-  find . | sed 's|^\./||' | grep -E "$(glob_re "$1")" 2>/dev/null
-}
 
 # metachars get a clear refusal even though nothing below evals — a scope
 # full of shell syntax is a mistake, not a glob
@@ -96,43 +44,13 @@ rb="$(mktemp)"; sb="$(mktemp)"; trap 'rm -f "$rb" "$sb"' EXIT
 # the generated dirs every map excludes anyway (a grep through
 # node_modules measures a strawman, not the counterfactual). Case-
 # sensitive: probes are the namespaces' own names, not fuzzy queries.
-excl="--exclude-dir=*-out"
-for d in .git node_modules vendor dist build target out __pycache__ \
-         .next .cache venv .venv .idea .vscode coverage .turbo .output \
-         .nuxt .svelte-kit storybook-static DerivedData Pods bin obj; do
-  excl="$excl --exclude-dir=$d"
-done
+excl="$(grep_excludes)"
 grep -rnI $excl -- "$pat" . > "$rb" 2>/dev/null || true
 
 # scoped — expand the namespace's globs to concrete paths, grep only those
 : > "$sb"
-paths=""
-while IFS= read -r tok; do
-  [ -z "$tok" ] && continue
-  # only a literal trailing /** collapses to its dir — the glob pattern
-  # */** would match any token containing / and shred src/*.ts or /*.md
-  case "$tok" in *'/**') tok="${tok%\*\*}" ;; esac
-  if printf '%s' "$tok" | grep -q '[*?\[]'; then
-    while IFS= read -r f; do
-      [ -n "$f" ] && paths="$paths$f
-"
-    done < <(match_scope "$tok")
-  elif [ -e "$tok" ]; then
-    paths="$paths$tok
-"
-  fi
-done <<< "$(expand_scope "$scope")"
-# normalize to a deduped file list — overlapping globs and dir+file pairs
-# would otherwise grep the same file twice and inflate hits
 plist="$(mktemp)"; trap 'rm -f "$rb" "$sb" "$plist"' EXIT
-while IFS= read -r p; do
-  [ -z "$p" ] && continue
-  if [ -d "$p" ]; then
-    find "$p" -type f -not -name '.*'
-  else
-    printf '%s\n' "$p"
-  fi
-done <<< "$paths" | sort -u > "$plist"
+scope_files "$scope" > "$plist"
 while IFS= read -r f; do
   grep -nI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
 done < "$plist"

@@ -1,9 +1,66 @@
 # Changelog
 
+## [0.10.0] - 2026-10-26
+
+From prompt rules to a tool: the discipline now runs as commands, the
+log feeds back into the map, and the map injects itself at session
+start.
+
+- **`scripts/search.sh`** — scoped search as a command:
+  `search.sh auth "expire"` resolves the tag's globs, greps inside
+  them, widens one level on a miss (parent namespace, then the repo
+  minus generated dirs), reports where hits landed, and appends the
+  metrics line — §4–§8 of the skill execute instead of being
+  remembered. `--scope`/`--paths`/`--list` turn the map into an index
+  other commands can query (`grep -rn x $(search.sh --paths auth)`).
+  Ambiguous leaf names report their composed tags instead of silently
+  first-matching; the widened search excludes `.prefixer/` so the log
+  can't self-hit its own telemetry.
+- **`scripts/suggest_map.sh`** — the flywheel: reads `metrics.jsonl`,
+  the map, and the tree, then prints a review list — ADD rows for
+  searched-but-unmapped scopes and widened-hit clusters, CHECK for
+  uncovered dirs with drift dates, CUT for rows that never scoped a
+  logged search, ROOT for unscoped-search counts. Suggestions only; the
+  map stays hand-curated.
+- **Session-start injection, shipped.** `scripts/session_start.sh`
+  prints the map plus a one-line lint verdict (plain or as the
+  `additionalContext` hook envelope Claude Code and Devin both read);
+  `scripts/install_hook.sh` writes `.devin/hooks.v1.json` or merges
+  `.claude/settings.json`. Reference snippets + a consumer PR-check
+  workflow live in `integrations/`.
+- **`SPEC.md`** — the namespaces.md format contract: file, header, row
+  grammar, scope grammar, tag addressing, companion artifacts. For
+  tools that read or write maps.
+- **`scripts/lib_scope.sh`** — one shared copy of the scope grammar,
+  glob→regex resolver, tag parser, exclusion lists, and root-finding.
+  `check_namespaces.sh`, `eval_scope.sh`, `eval_repo.sh`,
+  `init_namespaces.sh`, `measure_search.sh` now source it — a fix like
+  the unbalanced-brace guard lands everywhere at once.
+- **Eval corpus grows to 18 repos** — flask, fastapi, cobra, tokio, gson
+  join (python-web, go-lib, rust-async, java shapes).
+- Metrics schema gains `ns`, `pattern`, `widened_to`, `hit_dirs`
+  (search.sh emits them; suggest_map.sh reads them). `install.sh`
+  copies `SPEC.md`; `validate-package.py` checks `integrations/` and
+  SPEC.md mentions plus every script's shebang.
+
+Accuracy fixes:
+
+- **Generated scratch stops inflating measurements.** `.work` (eval-corpus
+  clones) joins `PREFIXER_SKIP`/`PREFIXER_GREP_SKIP`, and `match_scope`,
+  `resolve`, and `scope_files` now prune skipped dirs inside a scoped
+  parent — `eval/**` no longer greps vendored clones under `eval/.work`.
+  `init_namespaces.sh` sampling and `check_namespaces.sh`'s
+  generated-path fail follow the same list.
+- **`visualize.py` counts the repo's own files.** `.work` joins its skip
+  set (a corpus checkout had 924 MB / ~100k files masquerading as the
+  59-file repo), coverage no longer rounds 99.9% into a `100%` claim,
+  and the first-try-hit card shows its sample size (`n=`).
+
 ## [0.9.0] - 2026-10-26
 
-A visualizer: see the map painted on the codebase and the savings it
-measures — the graphify-style HTML report, for scoped search.
+A visualizer, plus another round of scaffold truthfulness: prefixes stay
+name-derived, contains cells stay clean, and the corpus measures fresh
+maps instead of stale ones.
 
 - **`scripts/visualize.py`** — stdlib-only, no dependencies. Reads
   `.prefixer/namespaces.md`, walks the repo (same generated-dir
@@ -16,6 +73,33 @@ measures — the graphify-style HTML report, for scoped search.
   first-try-hit markers. Flags: `-o OUT`, `--no-eval` (fall back to
   logged eval lines), `--max-files N`, `--open`. `report.html` is
   appended to `.prefixer/.gitignore` like `metrics.jsonl`.
+
+Scaffold and lint fixes:
+
+- **`expand_scope()` no longer hangs** on an unbalanced `{` — a typo'd
+  `src/{a,b` scope recursed forever; now it emits the token literally
+  and the dead-scope check reports it.
+- **BSD `sed` portability.** `[ \t]` matched a literal `t` on macOS and
+  corrupted `tools/**`-shaped scope tokens into false `uncovered`
+  warnings — now `[[:blank:]]`.
+- **`contains` is sanitized** — `|` and `\r` stripped, newlines folded;
+  a pipe in derived text made phantom table cells for every consumer.
+- **`desc_for` skips badge/link/ASCII-art lines** — the first doc hit
+  for a dir name is usually `[![Build status](…`, not prose.
+- **Prefixes stay name-derived.** The `file_token` fallback produced
+  misleading names (`.changeset/`→`undici:`, `acceptance/`→`create:`);
+  long names now use the name itself or a deterministic vowel-drop
+  shortening. Same-name children under different parents qualify with
+  the parent dir instead of a draft `todo-` prefix.
+- **More code parents descend** — `crates`, `cmd`, `internal`, `pkg`,
+  `plugins`, `themes`, `components`, `tools`, the project-named dir
+  (`django/django`), and any top dir holding ≥3 code-bearing children.
+- **Generated/data files out of rows** — lockfiles are excluded from the
+  root-file scope, and jumbo rows skip `.txt`/`.json`/lock/snapshot/
+  baseline/fixture files so data can't crowd out real source.
+- **`eval/run.sh` refreshes maps** — the corpus deletes the disposable
+  eval map before scaffolding; weekly CI was measuring the first-run
+  map against moving repos.
 
 ## [0.8.2] - 2026-10-26
 

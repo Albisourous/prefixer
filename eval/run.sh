@@ -23,6 +23,9 @@ while read -r repo shape _; do
     git clone -q --depth 1 "https://github.com/$repo" "$dir" 2>/dev/null || {
       echo "clone failed: $repo" >&2; continue; }
   fi
+  # the map is disposable eval data, not a curated repo file — refresh it
+  # or weekly CI measures the first-run map against a moving repo
+  rm -f "$dir/.prefixer/namespaces.md"
   bash "$root/scripts/init_namespaces.sh" "$dir" >/dev/null 2>&1 || true
   lint="$(bash "$root/scripts/check_namespaces.sh" "$dir" 2>&1 | tail -1)"
   table="$(bash "$root/scripts/eval_repo.sh" "$dir" 2>/dev/null)"
