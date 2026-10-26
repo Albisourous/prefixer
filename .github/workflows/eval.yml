@@ -1,0 +1,24 @@
+name: eval-corpus
+on:
+  schedule:
+    - cron: '23 5 * * 1' # Mondays 05:23 UTC — keeps README's claim honest
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash eval/run.sh
+      - name: Commit refreshed results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add eval/RESULTS.md
+          if git diff --cached --quiet; then
+            echo "results unchanged"
+            exit 0
+          fi
+          git commit -m "Refresh eval corpus results"
+          git push

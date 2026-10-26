@@ -8,7 +8,7 @@ The point of tracking is that prefix claims stay honest. No baseline, no
 `.prefixer/metrics.jsonl`, one line per task, committed with the repo:
 
 ```json
-{"ts":"2026-10-26","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}
+{"ts":"2026-10-26T14:03:11Z","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}
 ```
 
 One schema, optional fields. Every writer emits the same keys it can
@@ -16,20 +16,26 @@ honestly fill:
 
 | field | required? | meaning |
 |-------|-----------|---------|
-| `ts` | yes | date, ISO |
+| `ts` | yes | date+time, ISO-8601 UTC (`2026-10-26T14:03:11Z`) — date-only loses same-day ordering |
 | `task` | yes | short tag for the task |
 | `searches` | yes | search calls this line covers |
 | `est_tokens` | yes | rough tokens, chars/4 — an estimate, label it as one |
+| `scope` | per-search lines | the glob or dir the search ran in, `root` when unscoped — the field that makes "scoped beats root" measurable |
 | `hits` | per-search lines | result lines the search returned |
 | `tool_calls` | task lines | total tool calls in the task |
-| `first_try_hit` | task lines | answer found inside the first scoped search |
+| `first_try_hit` | task lines | answer found inside the first scoped search — agent judgment, or `--hit`/`--miss` on the script |
 | `baseline` | optional | `true` marks the pre-change probe line |
 | `notes` | optional | free text |
 
 `scripts/measure_search.sh` wraps a search command and appends a
-per-search line (`hits`) automatically — use it when you want real counts
-instead of estimates. `--baseline` tags the line as the pre-change probe.
-Hand-written task lines carry `tool_calls` and `first_try_hit`.
+per-search line (`hits`, `scope`) automatically — use it when you want
+real counts instead of estimates. The log always lands at the repo root:
+the nearest `.prefixer/` walking up, else the git toplevel — running it
+from a subdirectory cannot create a stray `.prefixer/`. Flags:
+`--baseline` tags the line as the pre-change probe, `--scope <glob>`
+overrides scope inference (default: the command's path args, `root` when
+none), `--hit`/`--miss` records `first_try_hit`. Hand-written task lines
+carry `tool_calls` and `first_try_hit`.
 
 **Git handling:** `metrics.jsonl` is local telemetry — the scaffold writes
 a `.prefixer/.gitignore` for it. Commit it only if the team wants shared

@@ -46,7 +46,8 @@ different tags. Empty dirs are skipped rather than mapped.
   not to describe the folder. "auth: login, sessions, tokens" tells a
   searcher this is where credential checks live; "auth: authentication code"
   tells it nothing the name doesn't. Seed it from what actually lives there
-  — agent-doc mentions, the files inside — never boilerplate.
+  — agent-doc mentions, the doc comments and exported symbols inside the
+  files, then the file names — never boilerplate.
 
 ## Rules
 
@@ -55,9 +56,18 @@ different tags. Empty dirs are skipped rather than mapped.
 - **Every row must be glob-backed.** No vibes namespaces. If a concept has no
   path to point at, it is not a namespace.
 - **Never map vendored or generated paths** (`node_modules`, `vendor`,
-  `dist`, `build`, `target`, lock files). Those are excluded from search by
-  default; a row for them invites exactly the scans the map exists to
-  prevent.
+  `dist`, `build`, `target`, `*-out`, lock files). Those are excluded from
+  search by default; a row for them invites exactly the scans the map
+  exists to prevent.
+- **Root files and dot dirs count.** `package.json`, `vite.config.ts`,
+  root READMEs, and `.github/`-style tooling dirs are real search intents
+  — give them rows. Explicit filenames are legal scopes; `cfg:` and
+  `devin:` are the usual names.
+- **Jumbo files get rows.** A 10k-line file inside `game:` still lands
+  the searcher inside something too big to read. Files over ~3k lines
+  earn a per-file row — scope is the file itself, `contains` carries
+  declaration landmarks (`~10k lines: spawnWave@1270, render@3800`). Line
+  numbers drift; treat them as entry points and refresh on a stale jump.
 - **One home.** If a file matches two rows equally often, merge the rows.
   Overlapping scopes are fine; ambiguous ones are not.
 - **Update incrementally.** Edit stale rows, add missing ones, keep the rest
@@ -85,6 +95,25 @@ prose. Don't maintain two drifting tables of contents:
 - **`metrics.jsonl` is local telemetry.** The scaffold writes a
   `.prefixer/.gitignore` for it. Commit it only if the team wants trend
   data in history.
+
+## Session-start injection
+
+"Read the map once per session" is the step most likely to be skipped.
+The fix is the same pattern `AGENTS.md` already uses: have the harness
+emit the map at session start so it lands in the stable prompt prefix,
+and every search starts scoped with zero discipline required.
+
+Hook names vary by harness (a `SessionStart` hook, a session-start hook
+dir, a startup-context block); the recipe is always the same — print the
+map into session context:
+
+```sh
+cat .prefixer/namespaces.md 2>/dev/null
+```
+
+Keep the injection stable-first: the map is a per-session artifact, so it
+belongs after identity and rules and before per-turn task state — the
+same ordering `cache-ordering.md` prescribes for `AGENTS.md`.
 
 ## Other repo shapes
 

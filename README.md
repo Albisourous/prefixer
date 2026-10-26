@@ -50,15 +50,21 @@ read src/auth/session.ts:40-58          → found
 
 **Measured on public repos.** `eval_repo.sh` lints a map, then probes
 every namespace with the same grep at repo root and inside the namespace's
-globs:
+globs. `eval/run.sh` does that weekly over an 8-repo corpus and commits
+the table — the claim stays honest as the scaffold changes:
 
 <img src="assets/eval-chart.svg" alt="Measured search output: root grep vs scoped grep, 85 to 94% fewer bytes" width="720">
 
-| repo | namespaces | mean bytes saved | range |
-|---|---|---|---|
-| obra/superpowers | 8 | **89%** | 69-100% |
-| DietrichGebert/ponytail | 12 | **91%** | 68-100% |
+| repo | shape | mean bytes saved |
+|---|---|---|
+| obra/superpowers | skills-pack | **93%** |
+| cli/cli | go-cli | **92%** |
+| BurntSushi/ripgrep | rust-cli | **85%** |
+| shadcn-ui/ui | monorepo | **84%** |
+| **8-repo corpus mean** | | **84%** |
 
+Full table (per-repo ranges, lint status) in
+[eval/RESULTS.md](eval/RESULTS.md), refreshed weekly by CI.
 `bash scripts/eval_repo.sh <repo>` on your own repo gets your numbers;
 `eval_scope.sh <repo> <pattern> <prefix>` measures a single query.
 
@@ -86,10 +92,12 @@ build plan.
 
 ## Status
 
-[v0.7.0](https://github.com/Albisourous/prefixer/releases): derived
-prefixes, `repo:` qualifiers, nested sub-team namespaces, map linting, and
-a measured-eval harness. Layout follows the humanizer model: one canonical
-`SKILL.md` at the root, thin plugin manifests per harness.
+[v0.8.0](https://github.com/Albisourous/prefixer/releases): `contains`
+cells now sample real file contents (doc comments, exported symbols), an
+8-repo eval corpus publishes weekly results, and the eval/lint scripts
+hardened (composed-tag eval, scope-injection guard). Layout follows the
+humanizer model: one canonical `SKILL.md` at the root, thin plugin
+manifests per harness.
 
 ## Install
 
@@ -141,6 +149,7 @@ or run `npx skills add Albisourous/prefixer`. It is listed on
 SKILL.md                  canonical skill (root, single file)
 references/               deep-dives loaded on demand
 scripts/                  scaffold, lint, measure, eval, validate, test
+eval/                     public-repo corpus + weekly RESULTS.md
 agents/openai.yaml        OpenAI-compatible agent display data
 *-plugin/                 per-harness manifests (claude, cursor, devin)
 ```

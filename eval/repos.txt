@@ -1,0 +1,15 @@
+# Public repos the corpus evals — different shapes on purpose.
+# Format: owner/repo <shape>   (# comments ignored)
+obra/superpowers        skills-pack
+mattpocock/skills       skills-pack
+anthropics/skills       skills-pack
+addyosmani/agent-skills skills-pack
+blader/humanizer        agent-skill
+Graphify-Labs/graphify  knowledge-graph
+DietrichGebert/ponytail web-app
+expressjs/express       web-framework
+psf/requests            python-library
+BurntSushi/ripgrep      rust-cli
+shadcn-ui/ui            monorepo
+rust-lang/book          docs-site
+cli/cli                 go-cli

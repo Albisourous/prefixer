@@ -1,26 +1,66 @@
 #!/usr/bin/env bash
 # Measure the token delta of one scoped search vs a repo-root search —
 # the actual thing prefixer exists to save.
-# usage: eval_scope.sh [repo-root] <grep-pattern> <prefix> [--log]
+# usage: eval_scope.sh [repo-root] <grep-pattern> <prefix|tag> [scope-globs] [--log]
+# <prefix> may be a composed tag (payments:checkout) for nested rows;
+# passing scope-globs skips the map lookup — the prefix is a label only.
 # Prints a JSON line; --log also appends it to .prefixer/metrics.jsonl.
 set -uo pipefail
 
 root="${1:-.}"
-pat="${2:?usage: eval_scope.sh [repo] <pattern> <prefix> [--log]}"
-ns="${3:?usage: eval_scope.sh [repo] <pattern> <prefix> [--log]}"
-log="${4:-}"
+pat="${2:?usage: eval_scope.sh [repo] <pattern> <prefix> [scope] [--log]}"
+ns="${3:?usage: eval_scope.sh [repo] <pattern> <prefix> [scope] [--log]}"
+log="" scope=""
+for a in "${@:4}"; do
+  case "$a" in --log) log="--log" ;; *) scope="$a" ;; esac
+done
 map="$root/.prefixer/namespaces.md"
-[ -f "$map" ] || { echo "no map at $map" >&2; exit 1; }
 
-row="$(grep -E "^\| *${ns}: *\|" "$map" | head -1)"
-[ -n "$row" ] || { echo "no prefix '${ns}:' in $map" >&2; exit 1; }
-scope="$(printf '%s' "$row" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')"
+# rebuild ancestor tags from indentation — the same parent:child chain
+# check_namespaces.sh validates
+tag_scope() { # want-tag, map → scope
+  awk -F'|' -v want="$1" '
+    /^[[:space:]]*\|/ {
+      pf=$2; sc=$3; name=pf
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
+      if (name == "" || name == "prefix" || name ~ /^-/) next
+      ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
+      for (i in t) if (i >= lvl) delete t[i]
+      par = ""
+      for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
+      tag = (par == "" ? name : par ":" name); t[lvl] = tag
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
+      if (tag == want) { print sc; exit }
+    }' "$2"
+}
+
+if [ -z "$scope" ]; then
+  [ -f "$map" ] || { echo "no map at $map" >&2; exit 1; }
+  if [[ "$ns" == *:* ]]; then
+    scope="$(tag_scope "$ns" "$map")"
+  else
+    # exact-match the "name:" cell — no regex, so dots and dashes are safe
+    scope="$(awk -F'|' -v n="$ns" '
+      /^[[:space:]]*\|/ {
+        pf = $2; gsub(/^[[:space:]]+|[[:space:]]+$/, "", pf)
+        if (pf == n ":") { sc = $3; gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc); print sc; exit }
+      }' "$map")"
+  fi
+  [ -n "$scope" ] || { echo "no prefix '${ns}:' in $map" >&2; exit 1; }
+fi
+
+# the scope text is eval'd for brace expansion below — refuse anything
+# that is not plain glob syntax
+case "$scope" in
+  *'$'*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*'('*|*')'*|*"'"*|*'"'*|*$'\n'*)
+    echo "unsafe scope: $scope" >&2; exit 1 ;;
+esac
 
 cd "$root" || exit 1
 rb="$(mktemp)"; sb="$(mktemp)"; trap 'rm -f "$rb" "$sb"' EXIT
 
 # baseline — what an unscoped agent pays: repo-wide grep, .git excluded
-grep -rniI "$pat" . --exclude-dir=.git > "$rb" 2>/dev/null || true
+grep -rniI --exclude-dir=.git -- "$pat" . > "$rb" 2>/dev/null || true
 
 # scoped — expand the namespace's globs to concrete paths, grep only those
 : > "$sb"
@@ -50,7 +90,7 @@ for p in $paths; do
   fi
 done | sort -u > "$plist"
 while IFS= read -r f; do
-  grep -niI "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
+  grep -niI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
 done < "$plist"
 
 count() { # file → hits, bytes
@@ -63,8 +103,9 @@ read -r shits sbytes <<< "$(count "$sb")"
 saved=$((rbytes - sbytes))
 [ "$rbytes" -gt 0 ] && pct=$((saved * 100 / rbytes)) || pct=0
 toks=$((saved / 4))
-ts="$(date +%Y-%m-%d)"
-line="{\"ts\":\"$ts\",\"task\":\"eval-scope\",\"ns\":\"$ns\",\"pattern\":\"$pat\",\"root_hits\":$rhits,\"root_bytes\":$rbytes,\"ns_hits\":$shits,\"ns_bytes\":$sbytes,\"bytes_saved\":$saved,\"pct_saved\":$pct,\"est_tokens_saved\":$toks}"
+ts="$(date -u +%FT%TZ)"
+jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+line="{\"ts\":\"$ts\",\"task\":\"eval-scope\",\"ns\":\"$(jesc "$ns")\",\"pattern\":\"$(jesc "$pat")\",\"root_hits\":$rhits,\"root_bytes\":$rbytes,\"ns_hits\":$shits,\"ns_bytes\":$sbytes,\"bytes_saved\":$saved,\"pct_saved\":$pct,\"est_tokens_saved\":$toks}"
 printf '%s\n' "$line"
 [ "$log" = "--log" ] && printf '%s\n' "$line" >> .prefixer/metrics.jsonl
 exit 0

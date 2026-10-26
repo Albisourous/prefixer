@@ -2,7 +2,8 @@
 # Evaluate every namespace in a repo's map — lint it, then measure the
 # token delta of a scoped search vs a root search per row. The probe
 # pattern is the namespace's own name: derived vocabulary probing itself,
-# no per-repo config.
+# no per-repo config. Rows eval by their composed tag, so a nested
+# orders:checkout: is measured against its own scope, not a sibling's.
 # usage: eval_repo.sh [repo-root]
 set -uo pipefail
 
@@ -17,19 +18,35 @@ printf 'repo: %s\n\n' "${repo:-$(basename "$(cd "$root" && pwd)")}"
 bash "$here/check_namespaces.sh" "$root" || true
 echo
 
-printf '%-16s %9s %11s %9s %11s %7s\n' "prefix" "root_hits" "root_bytes" "ns_hits" "ns_bytes" "pct"
+# one line per row: composed tag, leaf name, scope — tags rebuilt from
+# indentation the same way check_namespaces.sh validates them
+pairs="$(awk -F'|' '
+  /^[[:space:]]*\|/ {
+    pf=$2; sc=$3; name=pf
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
+    if (name == "" || name == "prefix" || name ~ /^-/) next
+    ind = pf; sub(/[^ ].*/, "", ind); lvl = length(ind)
+    for (i in t) if (i >= lvl) delete t[i]
+    par = ""
+    for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
+    tag = (par == "" ? name : par ":" name); t[lvl] = tag
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
+    print tag "\t" name "\t" sc
+  }' "$map")"
+
+printf '%-24s %9s %11s %9s %11s %7s\n' "tag" "root_hits" "root_bytes" "ns_hits" "ns_bytes" "pct"
 tot=0; n=0
-for ns in $(grep -oE '^\| *[a-zA-Z0-9_.-]+:' "$map" | sed 's/[| :]//g'); do
-  [ "$ns" = "prefix" ] && continue
-  out="$(bash "$here/eval_scope.sh" "$root" "$ns" "$ns" 2>/dev/null)"
+while IFS=$'\t' read -r tag leaf scope; do
+  [ -n "$tag" ] || continue
+  out="$(bash "$here/eval_scope.sh" "$root" "$leaf" "$tag" "$scope" 2>/dev/null)"
   [ -n "$out" ] || continue
   rh="$(printf '%s' "$out" | sed -n 's/.*"root_hits":\([0-9]*\).*/\1/p')"
   rb="$(printf '%s' "$out" | sed -n 's/.*"root_bytes":\([0-9]*\).*/\1/p')"
   sh="$(printf '%s' "$out" | sed -n 's/.*"ns_hits":\([0-9]*\).*/\1/p')"
   sb="$(printf '%s' "$out" | sed -n 's/.*"ns_bytes":\([0-9]*\).*/\1/p')"
   pc="$(printf '%s' "$out" | sed -n 's/.*"pct_saved":\([0-9]*\).*/\1/p')"
-  printf '%-16s %9s %11s %9s %11s %6s%%\n' "$ns:" "$rh" "$rb" "$sh" "$sb" "$pc"
+  printf '%-24s %9s %11s %9s %11s %6s%%\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "$pc"
   tot=$((tot + pc)); n=$((n + 1))
-done
+done <<< "$pairs"
 echo
 [ "$n" -gt 0 ] && echo "mean pct_saved: $((tot / n))% across $n namespaces"

@@ -1,4 +1,5 @@
 # namespaces
+repo: prefixer
 
 | prefix | scope                                                  | contains                                    |
 |--------|--------------------------------------------------------|---------------------------------------------|
@@ -6,6 +7,8 @@
 | ref:   | references/**                                          | deep-dive playbooks loaded on demand        |
 | scr:   | scripts/**                                             | init/measure/validate helpers               |
 | plug:  | .claude-plugin/**, .cursor-plugin/**, .devin-plugin/**, agents/** | per-harness manifests, agent display data |
-| docs:  | README.md, DESIGN.md, CHANGELOG.md, AGENTS.md          | project docs, contributor guide             |
+| docs:  | *.md, LICENSE                                        | project docs, contributor guide             |
 | art:   | assets/**                                              | icon, images                                |
+| site:  | docs/**                                                | GitHub Pages landing page                   |
+| eval:  | eval/**                                                | measured eval harness, results              |
 | ci:    | .github/**                                             | validate workflow                           |

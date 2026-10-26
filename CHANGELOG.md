@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.8.0] - 2026-10-26
+
+Field report, round two: telemetry that stays honest, a scaffold that
+covers the whole repo — root files, dot dirs, and jumbo files — richer
+`contains` derivation, and a public eval corpus that keeps the savings
+claim honest.
+
+- **`contains` samples file contents.** The scaffold reads the files it
+  maps: first a doc comment (`//`, `#`, `--`, `/*`, `"""` — shebangs,
+  license headers, preprocessor lines filtered), then exported symbols
+  (`exports handleRequest, handleResponse`), then bare file names.
+  Representative files are picked by name overlap with the dir
+  (`auth/AuthService.ts` speaks for `auth/`). Still derived, never
+  declared — no wordlists, no LLM calls.
+- **Eval corpus.** `eval/repos.txt` lists eight public repos of different
+  shapes (monorepo, CLI, web framework, docs site); `eval/run.sh`
+  shallow-clones, scaffolds, lints, and evals each, then rewrites
+  `eval/RESULTS.md`. A weekly workflow commits the refreshed table —
+  corpus mean today: 84% of search-output bytes saved.
+- **`eval_repo.sh` evals by composed tag.** Rows iterate as
+  `tag + leaf + scope`, so a nested `orders:checkout:` is measured against
+  its own scope instead of whichever `checkout:` row came first.
+- **`eval_scope.sh`** resolves composed tags (`payments:checkout`), takes
+  an optional explicit scope argument, refuses non-glob scope text
+  instead of eval'ing it, and escapes the pattern/tag in its JSON line.
+- **`check_namespaces.sh`** fails rows whose scope is not plain glob
+  syntax (scope text is `eval`'d for brace expansion — it can never be
+  shell now), lints a relative repo argument correctly (cd invalidated
+  the root-relative map path), and treats brace lists as alternations in
+  coverage checks.
+- `.prefixer/.gitignore` is appended to, not overwritten, by the scripts
+  that create it; the validate workflow also `bash -n`s every script.
+- **`measure_search.sh` anchors at the repo root.** The log lands beside
+  the map (nearest `.prefixer/` walking up, else git toplevel) — running
+  it from a subdirectory can no longer create a stray `.prefixer/`. Adds
+  a `scope` field (`--scope`, else inferred from the command's path args,
+  `root` when unscoped), `--hit`/`--miss` for agent-reported
+  `first_try_hit`, and ISO-8601 UTC timestamps so same-day lines stay
+  ordered.
+- **`init_namespaces.sh` maps what dirs miss.** Rows now cover
+  non-generated dot dirs (`.devin`, `.github`, agent tooling), the files
+  at repo root (`package.json`, `vite.config.ts`, root docs — `cfg:` or
+  `doc:` depending on content), and jumbo files over ~3k lines as
+  per-file rows with declaration landmarks (`~10k lines:
+  spawnWave@1270`). Synthetic rows reserve budget inside the 12-row cap
+  so `cfg:`/`boot:` survive crowded trees.
+- **`check_namespaces.sh` coverage warnings** now include dot dirs and
+  uncovered root files.
+- **`references/namespaces.md`**: jumbo-file convention and a
+  session-start injection recipe — hook the map into the harness's
+  session-start context instead of relying on agents remembering to read
+  it. **`references/metrics.md`** documents `scope` and the new flags.
+- SKILL.md: "session-start beats remembering" note; metrics example
+  shows the ISO timestamp.
+
 ## [0.7.1] - 2026-10-26
 
 Description and docs: better triggers, no behavior change.

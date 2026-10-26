@@ -103,5 +103,94 @@ case "$out" in
   *) echo "FAIL repo eval aggregates"; fail=1 ;;
 esac
 
+# nested rows eval under their composed tag — orders:checkout must not
+# be measured against the payments:checkout scope
+case "$out" in
+  *"payments:checkout:"*"orders:checkout:"*|*"orders:checkout:"*"payments:checkout:"*)
+    echo "ok   nested rows eval by composed tag" ;;
+  *) echo "FAIL nested rows eval by composed tag"; fail=1 ;;
+esac
+
+# --- contains sampling: doc comment, then exports, then file names ---
+repo3="$tmp/docsrc"
+mkdir -p "$repo3/src"/{auth,api,notes}
+cat > "$repo3/src/auth/AuthService.ts" <<'EOF'
+// Handles session tokens, expiry, and refresh for the auth namespace
+export class AuthService {}
+EOF
+cat > "$repo3/src/api/apiHandlers.ts" <<'EOF'
+export function handleRequest() {}
+export function handleResponse() {}
+EOF
+echo 'plain text, no comment markers' > "$repo3/src/notes/notes.txt"
+bash "$here/init_namespaces.sh" "$repo3" >/dev/null 2>&1
+map3="$repo3/.prefixer/namespaces.md"
+
+check "contains from doc comment"   'Handles session tokens, expiry' "$map3"
+check "contains from exports"       'exports handleRequest' "$map3"
+check "contains falls to file names" 'files like notes' "$map3"
+
+# --- a scope that is not glob syntax fails the lint, not the shell ---
+evil="$tmp/evil"
+mkdir -p "$evil/src" "$evil/.prefixer"
+echo x > "$evil/src/a.ts"
+cat > "$evil/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: evil
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/** | handlers |
+| pwn: | $(touch /tmp/prefixer-pwned)/** | injected |
+EOF
+rm -f /tmp/prefixer-pwned
+if bash "$here/check_namespaces.sh" "$evil" >/dev/null 2>&1; then
+  echo "FAIL unsafe scope rejected"; fail=1
+else
+  echo "ok   unsafe scope rejected"
+fi
+[ -e /tmp/prefixer-pwned ] && { echo "FAIL scope executed as shell"; fail=1; } || echo "ok   scope never reached the shell"
+
+# --- fixture: dot dirs, root files, jumbo files all earn rows ---
+repo3="$tmp/tinyts"
+mkdir -p "$repo3/src/game" "$repo3/src/core" "$repo3/.devin/hooks"
+{ for i in $(seq 1 3100); do echo "line $i"; done; } > "$repo3/src/game/battle.ts"
+echo 'export function spawnWave() {}' >> "$repo3/src/game/battle.ts"
+echo x > "$repo3/src/core/engine.ts"
+echo '# session hook' > "$repo3/.devin/hooks/session-start.sh"
+echo '{}' > "$repo3/package.json"
+echo x > "$repo3/vite.config.ts"
+echo x > "$repo3/TRACKER.md"
+bash "$here/init_namespaces.sh" "$repo3" >/dev/null 2>&1
+map3="$repo3/.prefixer/namespaces.md"
+
+check "dot dir gets a row"          '| devin: | \.devin/\*\*' "$map3"
+check "root files get a row"        '| cfg: | .*package\.json' "$map3"
+check "jumbo file gets a row"       '| battle: | src/game/battle.ts |' "$map3"
+check "jumbo carries landmarks"     'spawnWave@' "$map3"
+if bash "$here/check_namespaces.sh" "$repo3" >/dev/null 2>&1; then
+  echo "ok   check passes on dot/root/jumbo rows"
+else
+  echo "FAIL check passes on dot/root/jumbo rows"; fail=1
+fi
+
+# --- measure_search.sh: anchors at repo root, logs scope + verdict ---
+( cd "$repo/src" && bash "$here/measure_search.sh" --scope src/auth --hit t-sub -- grep -rn x auth ) >/dev/null 2>&1
+mfile="$repo/.prefixer/metrics.jsonl"
+check "logs at repo root"            '"task":"t-sub"' "$mfile"
+if [ -e "$repo/src/.prefixer" ]; then
+  echo "FAIL no stray .prefixer in subdir"; fail=1
+else
+  echo "ok   no stray .prefixer in subdir"
+fi
+check "scope recorded"               '"scope":"src/auth"' "$mfile"
+check "hit verdict recorded"         '"first_try_hit":true' "$mfile"
+check "iso-8601 timestamp"           '"ts":"[0-9-]*T[0-9:]*Z"' "$mfile"
+
+# walk-up fallback: repo2 has no git, .prefixer lives at its root
+( cd "$repo2/src" && bash "$here/measure_search.sh" t-inf -- grep -rn x GameServer ) >/dev/null 2>&1
+mfile2="$repo2/.prefixer/metrics.jsonl"
+check "walk-up anchor without git"   '"task":"t-inf"' "$mfile2"
+check "scope inferred from path arg" '"scope":"GameServer"' "$mfile2"
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

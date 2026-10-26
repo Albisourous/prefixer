@@ -8,7 +8,7 @@ description: |
   when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.7.1"
+  version: "0.8.0"
 allowed-tools:
   - read
   - grep
@@ -85,6 +85,11 @@ scaffold reports how many draft rows remain.
 describe the layout, seed `contains` from them (the scaffold does this) and
 treat `namespaces.md` as canonical for *search scope* — don't maintain two
 drifting tables of contents.
+
+**Session-start beats remembering.** Reading the map once per session is
+the step most likely to be skipped. If the harness can inject files at
+session start, have it emit `namespaces.md` — every search then starts
+scoped with no discipline required. Recipe: `references/namespaces.md`.
 
 ### 2. Keep it small and glob-backed
 
@@ -185,15 +190,16 @@ exists. See `references/metrics.md` for what to record and how to score it.
 each task:
 
 ```json
-{"ts":"2026-10-26","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}
+{"ts":"2026-10-26T14:03:11Z","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}
 ```
 
 `est_tokens` is chars/4, an estimate; keep the field even when you cannot
 measure exactly. At session end, report the delta against the baseline.
-`scripts/measure_search.sh` writes per-search lines (`hits`, optional
-`baseline` flag); hand-written task lines add `tool_calls` and
-`first_try_hit`. One schema, optional fields — `references/metrics.md`
-lists them.
+`scripts/measure_search.sh` wraps a search and logs a per-search line at
+the repo root (`hits`, `scope`; `--baseline` marks the probe,
+`--hit|--miss` records `first_try_hit`). Hand-written task lines add
+`tool_calls` and `first_try_hit`. One schema, optional fields —
+`references/metrics.md` lists them.
 
 **Git handling.** Commit `namespaces.md` — it is the shared prefix every
 future session benefits from. `metrics.jsonl` is local telemetry; the

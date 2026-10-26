@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Prefixer · scoped code search skill for AI agents">
-<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree. Measured 89-91% of search-output bytes saved on public repos.">
+<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree. Measured 84% mean search-output bytes saved across an 8-repo public corpus.">
 <meta property="og:url" content="https://albisourous.github.io/prefixer/">
 <meta property="og:image" content="https://albisourous.github.io/prefixer/icon.svg">
 <meta name="twitter:card" content="summary">
@@ -22,7 +22,7 @@
   "@type": "SoftwareSourceCode",
   "name": "prefixer",
   "alternateName": "Prefixer agent skill",
-  "softwareVersion": "0.7.0",
+  "softwareVersion": "0.8.0",
   "description": "An agent skill for scoped codebase search. A namespace map keeps agent searches inside the right part of the tree; playbooks cover index-time doc prefixes and prompt-cache ordering.",
   "codeRepository": "https://github.com/Albisourous/prefixer",
   "programmingLanguage": "Shell",
@@ -41,7 +41,7 @@
   "@type": "FAQPage",
   "mainEntity": [
     {"@type": "Question", "name": "How do I reduce token usage in AI coding agents?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Most token waste in agent sessions comes from repo-wide searches dumping irrelevant hits into context. Prefixer gives the agent a namespace map so searches run inside the right directory first. On public repos it measured 89-91% fewer search-output bytes."}},
+     "acceptedAnswer": {"@type": "Answer", "text": "Most token waste in agent sessions comes from repo-wide searches dumping irrelevant hits into context. Prefixer gives the agent a namespace map so searches run inside the right directory first. On an 8-repo public corpus it measured 84% mean fewer search-output bytes."}},
     {"@type": "Question", "name": "Why does my AI agent read the whole codebase?",
      "acceptedAnswer": {"@type": "Answer", "text": "Because nothing tells it where things live. .prefixer/namespaces.md is that missing file: a short table of prefixes to scopes, derived from the codebase's own vocabulary, that every session reads before searching."}},
     {"@type": "Question", "name": "Does prefixer work with Claude Code, Devin, Codex, and Cursor?",
@@ -51,7 +51,7 @@
     {"@type": "Question", "name": "How is prefixer different from RAG and embeddings?",
      "acceptedAnswer": {"@type": "Answer", "text": "They solve different problems. Prefixer scopes lexical search before it runs; embeddings rank results after retrieval. The index-time prefix playbook in references/ tightens RAG corpora too."}},
     {"@type": "Question", "name": "How much does scoped search actually save?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Measured, not estimated: eval_repo.sh greps every namespace at repo root and inside its scope. On obra/superpowers it saved 89% of output bytes across 8 namespaces; on DietrichGebert/ponytail, 91% across 12."}}
+     "acceptedAnswer": {"@type": "Answer", "text": "Measured, not estimated: eval_repo.sh greps every namespace at repo root and inside its scope. Across an 8-repo public corpus — monorepo, CLI, web framework, docs site — it saved 84% of output bytes on average, per-repo means 68-93%. The table refreshes weekly in eval/RESULTS.md."}}
   ]
 }
 </script>
@@ -138,8 +138,8 @@ any agent that reads skills:
 <a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, and friends.</p>
 
 <div class="stats">
-  <div class="stat"><strong>89-91%</strong><span>mean search bytes saved, two public repos</span></div>
-  <div class="stat"><strong>20</strong><span>namespaces measured, 68-100% range</span></div>
+  <div class="stat"><strong>84%</strong><span>mean search bytes saved, 8-repo corpus</span></div>
+  <div class="stat"><strong>83</strong><span>namespaces measured, 2-100% range</span></div>
   <div class="stat"><strong>0</strong><span>dependencies: markdown and shell</span></div>
 </div>
 
@@ -177,28 +177,38 @@ any agent that reads skills:
 <img src="eval-chart.svg" alt="Measured search output: root grep vs scoped grep, 85 to 94% fewer bytes" width="720" style="max-width:100%;height:auto;margin:0 0 16px">
 
 <table>
-  <tr><th>repo</th><th>namespaces</th><th>mean bytes saved</th><th>range</th></tr>
-  <tr><td><a href="https://github.com/obra/superpowers">obra/superpowers</a></td><td>8</td><td>89%</td><td>69-100%</td></tr>
-  <tr><td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td><td>12</td><td>91%</td><td>68-100%</td></tr>
+  <tr><th>repo</th><th>shape</th><th>namespaces</th><th>mean saved</th><th>range</th></tr>
+  <tr><td><a href="https://github.com/obra/superpowers">obra/superpowers</a></td><td>skills-pack</td><td>12</td><td>93%</td><td>69-100%</td></tr>
+  <tr><td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td><td>web-app</td><td>12</td><td>91%</td><td>68-100%</td></tr>
+  <tr><td><a href="https://github.com/expressjs/express">expressjs/express</a></td><td>web-framework</td><td>6</td><td>80%</td><td>11-100%</td></tr>
+  <tr><td><a href="https://github.com/psf/requests">psf/requests</a></td><td>python-library</td><td>7</td><td>68%</td><td>2-100%</td></tr>
+  <tr><td><a href="https://github.com/BurntSushi/ripgrep">BurntSushi/ripgrep</a></td><td>rust-cli</td><td>10</td><td>85%</td><td>31-100%</td></tr>
+  <tr><td><a href="https://github.com/shadcn-ui/ui">shadcn-ui/ui</a></td><td>monorepo</td><td>12</td><td>84%</td><td>3-100%</td></tr>
+  <tr><td><a href="https://github.com/rust-lang/book">rust-lang/book</a></td><td>docs-site</td><td>12</td><td>80%</td><td>7-100%</td></tr>
+  <tr><td><a href="https://github.com/cli/cli">cli/cli</a></td><td>go-cli</td><td>12</td><td>92%</td><td>40-99%</td></tr>
 </table>
+
+<p class="muted">Corpus mean: <strong>84%</strong>. Regenerated weekly from
+<code>eval/repos.txt</code> by CI — full table and method in
+<a href="https://github.com/Albisourous/prefixer/blob/main/eval/RESULTS.md">eval/RESULTS.md</a>.</p>
 
 <div class="term">
   <div class="term-bar"><i></i><i></i><i></i><span>eval_repo.sh · real output</span></div>
 <pre>$ bash scripts/eval_repo.sh ~/repos/superpowers
 
-checked 8 namespaces: 0 failures, 0 warnings
+checked 12 namespaces: 0 failures, 8 warnings
 
-prefix      root_hits  root_bytes   ns_hits   ns_bytes    pct
-assets:            45       5414         0         0   100%
-docs:             178      35320        67     10800    69%
-hooks:            222      31628        10       896    97%
-scripts:          266      40796        19      2061    94%
-skills:          1037     142879       201     33039    76%
-tests:            561      84704       165     15702    81%
-.github:          117      17598         0         0   100%
-boot:             380      48066         0         0   100%
+tag                  root_hits  root_bytes   ns_hits   ns_bytes    pct
+assets:                     45       5414         0         0   100%
+docs:                      179      35525        67     10800    69%
+hooks:                     222      31628        10       896    97%
+scripts:                   266      40796        19      2061    94%
+skills:                   1037     142879       201     33039    76%
+tests:                     561      84704       165     15702    81%
+plugin:                    793     100847         0         0   100%
+boot:                      380      48066         0         0   100%
 
-mean pct_saved: 89% across 8 namespaces</pre>
+mean pct_saved: 93% across 12 namespaces</pre>
 </div>
 
 <p class="muted">Scoped grep vs root grep, same query per namespace.
@@ -259,7 +269,8 @@ and RadixAttention.
   <p>Most token waste in agent sessions comes from repo-wide searches
   dumping irrelevant hits into context. Prefixer gives the agent a
   namespace map so searches run inside the right directory first. On
-  public repos it measured 89-91% fewer search-output bytes.</p>
+  an 8-repo public corpus it measured a mean 84% fewer search-output
+  bytes.</p>
 </details>
 <details>
   <summary>Why does my AI agent read the whole codebase?</summary>
@@ -290,9 +301,9 @@ and RadixAttention.
 <details>
   <summary>How much does scoped search actually save?</summary>
   <p>Measured, not estimated: <code>eval_repo.sh</code> greps every
-  namespace at repo root and inside its scope. On obra/superpowers it
-  saved 89% of output bytes across 8 namespaces; on
-  DietrichGebert/ponytail, 91% across 12. Your repo's number is one
+  namespace at repo root and inside its scope. Across an 8-repo public
+  corpus — monorepo, CLI, web framework, docs site — it saved a mean 84%
+  of output bytes, per-repo means 68–93%. Your repo's number is one
   command away.</p>
 </details>
 

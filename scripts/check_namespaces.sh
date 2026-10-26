@@ -6,10 +6,10 @@
 set -uo pipefail
 
 root="${1:-.}"
-map="$root/.prefixer/namespaces.md"
-[ -f "$map" ] || { echo "no map at $map" >&2; exit 1; }
-
-cd "$root" || exit 1
+# cd first: a relative $root would otherwise break every $map read below
+cd "$root" 2>/dev/null || { echo "cannot cd $root" >&2; exit 1; }
+map=".prefixer/namespaces.md"
+[ -f "$map" ] || { echo "no map at $root/$map" >&2; exit 1; }
 fails=0 warns=0 rows=0
 skip="node_modules vendor dist build target out .git .prefixer __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
 
@@ -52,6 +52,13 @@ while IFS= read -r line; do
   recent="$recent$lvl	$tag
 "
 
+  # scope text is eval'd below for brace expansion — anything that is not
+  # plain glob syntax fails here instead of running as shell
+  case "$scope" in
+    *'$'*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*'('*|*')'*|*"'"*|*'"'*|*$'\n'*)
+      fail "unsafe scope: ${tag}: → $scope"; continue ;;
+  esac
+
   # eval expands brace lists {a,b} the way the searching shell does, and
   # splits commas outside braces — the naive split shreds {A,B,C} rows
   live=0 genflag=0
@@ -77,13 +84,16 @@ cover() { # dirname → 0 if a scope claims it, its parent, or lives inside it
   for tok in $scopes_all; do
     case "$tok" in
       "$d"|"$d/**"|"$d/"*) return 0 ;;
-      */**) [ "${d#"${tok%/**}"}" != "$d" ] && return 0 ;;
+      */**) [ "${d#"${tok%/**}/"}" != "$d" ] && return 0 ;;
     esac
   done
   return 1
 }
-scopes_all="$(grep '^|' "$map" | cut -d'|' -f3 | tr ',' ' ' | tr -s ' ' '\n' | grep -v '^ *$' | sort -u)"
-for d in */ .github/; do
+# scope tokens feed a case-pattern eval below — drop any that carry shell
+# metachars (they already FAILed the row lint; do not run them twice)
+scopes_all="$(grep '^|' "$map" | cut -d'|' -f3 | tr ',' ' ' | tr -s ' ' '\n' | grep -v '^ *$' |
+  grep -vE '[$`'"'"'";|&<>()]' | sort -u)"
+for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
   skipped_gen "$name" && continue
@@ -99,6 +109,22 @@ for parent in src lib app packages apps services modules libs; do
     cover "$parent/$child" || warn "uncovered dir: $parent/$child/"
   done
 done
+
+# root files are a search intent too (config, manifests, docs) — a scope
+# covers one by naming it or by a glob like *.md
+ufiles=""
+for f in *; do
+  [ -f "$f" ] || continue
+  hit=0
+  for tok in $scopes_all; do
+    # {a,b} is not case-pattern syntax — as alternation it is a|b
+    ctok="$(printf '%s' "$tok" | tr -d '{}' | tr ',' '|')"
+    eval "case \"\$f\" in $ctok) hit=1 ;; esac" 2>/dev/null
+    [ "$hit" -eq 1 ] && break
+  done
+  [ "$hit" -eq 0 ] && ufiles="$ufiles $f"
+done
+[ -n "$ufiles" ] && warn "uncovered root files:$ufiles"
 
 echo "checked $rows namespaces: $fails failures, $warns warnings"
 [ "$fails" -gt 0 ] && exit 1
