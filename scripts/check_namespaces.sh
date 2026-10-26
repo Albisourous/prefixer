@@ -107,10 +107,18 @@ while IFS= read -r raw; do
 done <<EOF
 $(awk -F'|' '/^[[:space:]]*\|/ { print $3 }' "$map" | sed 's/^[[:blank:]]*//; s/[[:blank:]]*$//')
 EOF
+# a dir the repo itself ignores is already opted out of mapping, so a
+# coverage warning for it is noise; in non-git dirs check-ignore fails
+# open and nothing is skipped
+in_git=false
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 && in_git=true
+ignored() { $in_git && git check-ignore -q "$1" 2>/dev/null; }
+
 for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
   skipped_gen "$name" && continue
+  ignored "$name" && continue
   [ -z "$(find "$d" -type f -not -name '.*' -print -quit 2>/dev/null)" ] && continue
   cover "$name" || warn "uncovered top dir: $name/"
 done
@@ -122,6 +130,7 @@ for parent in src lib app packages apps services modules libs crates cmd \
     [ -d "$d" ] || continue
     child="$(basename "$d")"
     skipped_gen "$child" && continue
+    ignored "$parent/$child" && continue
     cover "$parent/$child" || warn "uncovered dir: $parent/$child/"
   done
 done
