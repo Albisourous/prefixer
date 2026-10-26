@@ -49,19 +49,29 @@ build plan.
 
 ## Status
 
-Design phase. Layout follows the humanizer model: one canonical `SKILL.md`
-at the root, thin plugin manifests per harness (`.agents/skills`,
-`.devin/skills`, `.claude-plugin`, `.cursor-plugin`), skills.sh for
-one-line installs.
+v0.1.0 — first cut. Layout follows the humanizer model: one canonical
+`SKILL.md` at the root, thin plugin manifests per harness.
 
-## Layout (planned)
+## Install
+
+- **Manual (works everywhere):** copy `SKILL.md`, `references/`, and
+  `scripts/` into `.agents/skills/prefixer/` in your project — Devin, Codex,
+  Copilot CLI, and Gemini all read that path. For Devin you can also use
+  `.devin/skills/prefixer/`.
+- **Claude Code:** `/plugin marketplace add Albisourous/prefixer`
+- **skills.sh:** `npx skills add Albisourous/prefixer` (once listed)
+
+Then invoke with `/prefixer`, or let the agent trigger it when a task needs
+repeated codebase search.
+
+## Layout
 
 ```
-SKILL.md                  canonical skill (root, single-file)
+SKILL.md                  canonical skill (root, single file)
 references/               deep-dives loaded on demand
-scripts/                  namespace-map + metrics helpers
-*-plugin/                 per-harness manifests
-tests/                    manifest + format checks per adapter
+scripts/                  namespace-map + metrics + validator
+agents/openai.yaml        OpenAI-compatible agent display data
+*-plugin/                 per-harness manifests (claude, cursor, devin)
 ```
 
 ## The short version of what it does

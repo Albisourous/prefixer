@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "prefixer",
+  "description": "Add namespace prefixes to a codebase so searches start scoped, indexed text clusters tighter, and prompt caches hit.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Albisourous",
+    "url": "https://github.com/Albisourous"
+  },
+  "homepage": "https://github.com/Albisourous/prefixer",
+  "repository": "https://github.com/Albisourous/prefixer",
+  "license": "MIT",
+  "keywords": ["search", "retrieval", "tokens", "prompt-caching", "namespaces", "rag"],
+  "skills": ["./"]
+}
