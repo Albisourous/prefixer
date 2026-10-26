@@ -55,6 +55,26 @@ Accuracy fixes:
   set (a corpus checkout had 924 MB / ~100k files masquerading as the
   59-file repo), coverage no longer rounds 99.9% into a `100%` claim,
   and the first-try-hit card shows its sample size (`n=`).
+- **`[` `]` `{` `}` `\` are literal in scopes.** Character classes were
+  never scope syntax, but an unescaped `[` crashed `visualize.py`'s
+  `re.compile` and made `grep -E` silently return nothing. `glob_re`
+  now escapes them in both implementations — `src/file[1].txt` matches
+  the file named exactly that, and no glob can produce an invalid
+  pattern.
+- **Cross-universe evals are flagged, not averaged.** A row whose scope
+  lives entirely inside dirs the baseline grep skips (vendored, built,
+  generated) now emits `pct_saved:null` + `baseline_excluded:true`;
+  `eval_repo.sh` prints `n/a` with a reason instead of a blank `%`, and
+  `visualize.py` shows `—` badges for those rows and for 0-hit probes.
+  `eval_repo.sh` also parses negative `pct_saved` (`-[0-9]+`) instead
+  of counting the row as zero.
+- **File scopes no longer swallow directories.** `check_namespaces.sh`'s
+  coverage check matched `*/**` — in a case pattern that's "any token
+  containing a slash" — so `src/file.txt` marked `src/` covered. Only
+  a literal `/**` suffix widens to its dir now.
+- **One row grammar.** `check_namespaces.sh` accepts leading whitespace
+  before a row's `|` like `scope_pairs` and `visualize.py` already did —
+  a table nested in a Markdown list is linted, not silently skipped.
 
 ## [0.9.0] - 2026-10-26
 

@@ -33,6 +33,10 @@ unset _d
 
 skipped_gen() { case " $PREFIXER_SKIP " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
 
+# same check against the baseline grep's skip list — used to flag rows
+# whose scope lives entirely outside the counterfactual search universe
+skipped_grep() { case " $PREFIXER_GREP_SKIP " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
+
 # scope text → one glob token per line. {a,b} expands arm-wise, commas
 # split outside braces; spaces inside names survive. No eval anywhere —
 # tokens are data, never shell.
@@ -60,7 +64,10 @@ expand_scope() {
 # scopes are repo-relative and root-anchored: *.md matches root files
 # only; a leading / means the same thing, not absolute path
 glob_re() {
-  printf '%s' "$1" | sed -e 's|^/||' -e 's/[.+^$|()]/\\&/g' -e 's/\*\*/@@/g' \
+  # [ ] { } \ are literal — char classes are not scope syntax, so a glob
+  # can never produce an invalid regex (unbalanced [ is just a char)
+  printf '%s' "$1" | sed -e 's|^/||' -e 's/\\/\\\\/g' -e 's/[]]/\\]/g' \
+    -e 's/\[/\\[/g' -e 's/[.+^$|(){}]/\\&/g' -e 's/\*\*/@@/g' \
     -e 's/\*/[^\/]*/g' -e 's/\?/[^\/]/g' \
     -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
 }

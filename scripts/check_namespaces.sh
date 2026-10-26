@@ -23,6 +23,9 @@ grep -q '^repo:' "$map" || warn "no repo: header; add 'repo: <slug>' for multi-c
 
 tag_seen="" recent=""
 while IFS= read -r line; do
+  # readers ignore leading whitespace on a row line — the same grammar
+  # scope_pairs uses; a table nested in a list is still rows
+  line="${line#"${line%%[![:space:]]*}"}"
   case "$line" in '|'*) ;; *) continue ;; esac
   pf="$(printf '%s' "$line" | cut -d'|' -f2)"
   scope="$(printf '%s' "$line" | cut -d'|' -f3 | sed 's/^ *//; s/ *$//')"
@@ -80,7 +83,7 @@ cover() { # dirname → 0 if a scope claims it, its parent, or lives inside it
   while IFS= read -r tok; do
     case "$tok" in
       "$d"|"$d/"*) return 0 ;;
-      */**) [ "${d#"${tok%/**}/"}" != "$d" ] && return 0 ;;
+      *'/**') [ "${d#"${tok%\*\*}/"}" != "$d" ] && return 0 ;;
     esac
   done <<< "$scopes_all"
   return 1
@@ -95,7 +98,7 @@ while IFS= read -r raw; do
   scopes_all="$scopes_all$(expand_scope "$raw")
 "
 done <<EOF
-$(awk -F'|' '/^\|/ { print $3 }' "$map" | sed 's/^[[:blank:]]*//; s/[[:blank:]]*$//')
+$(awk -F'|' '/^[[:space:]]*\|/ { print $3 }' "$map" | sed 's/^[[:blank:]]*//; s/[[:blank:]]*$//')
 EOF
 for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
@@ -122,10 +125,10 @@ ufiles=""
 for f in *; do
   [ -f "$f" ] || continue
   hit=0
-  # case patterns are never word-split, so spaced tokens match whole —
-  # no eval needed
+  # same glob_re match as match_scope — case-glob [ would read a char
+  # class where the scope grammar means a literal bracket
   while IFS= read -r tok; do
-    case "$f" in $tok) hit=1; break ;; esac
+    printf '%s\n' "$f" | grep -qE "$(glob_re "$tok")" && { hit=1; break; }
   done <<< "$scopes_all"
   [ "$hit" -eq 0 ] && ufiles="$ufiles $f"
 done

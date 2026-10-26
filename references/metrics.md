@@ -29,6 +29,7 @@ honestly fill:
 | `widened_to` | optional | where a widened search found hits: a tag, `root`, or `none` |
 | `hit_dirs` | optional | `dir:count` list of where widened hits clustered — the map-gap signal `suggest_map.sh` reads |
 | `baseline` | optional | `true` marks the pre-change probe line |
+| `baseline_excluded` | eval lines | `true` when every scoped file lives inside dirs the baseline grep skips — `pct_saved` is `null` then |
 | `error` | optional | `true` marks a probe whose command failed — `hits` is unreliable |
 | `exit` | optional | the probe command's exit status when `error` is set |
 | `notes` | optional | free text |
@@ -110,4 +111,7 @@ the delta:
 `.prefixer/metrics.jsonl`. Run it on a few representative queries after a
 map lands — that is the number in the README claims, not a vibes estimate.
 A flat `pct_saved` means the namespace is too wide or the pattern was never
-search-bound; adjust the row and measure again.
+search-bound; adjust the row and measure again. A row that maps generated
+or vendored dirs gets `"pct_saved":null` + `"baseline_excluded":true`
+instead — its scoped grep runs inside files the baseline never reaches, so
+no percentage could be honest (the linter fails such rows anyway).

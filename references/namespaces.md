@@ -46,7 +46,9 @@ different tags. Empty dirs are skipped rather than mapped.
   `docs/**` for a tree), `dir/*` stays inside `dir`, `dir/**` crosses
   levels, `{src,lib}/**` expands arm-wise, a leading `/` means the same
   root anchor, explicit filenames are legal, and spaces in names are fine.
-  What is not legal: shell syntax — `$()`, backticks, `;`, `|`, `&`,
+  `[` and `]` are literal characters — `file[1].txt` names the file called
+  exactly that; there are no character classes. What is not legal: shell
+  syntax — `$()`, backticks, `;`, `|`, `&`,
   redirection. A scope is a glob, not a command; the linter fails it.
 - `contains`: one line, written to disambiguate between sibling namespaces,
   not to describe the folder. "auth: login, sessions, tokens" tells a

@@ -103,7 +103,9 @@ def glob_re(g):
         elif g[i] == "?":
             out.append("[^/]")
             i += 1
-        elif g[i] in ".+^$|()":
+        elif g[i] in ".+^$|()[]{}\\":
+            # char classes are not scope syntax — brackets are literal,
+            # so no scope can produce an invalid regex
             out.append("\\" + g[i])
             i += 1
         else:
@@ -389,10 +391,16 @@ def render(rows, repo, root, files, owner, entries, evaled, file_cap):
     cov = (100 if ns_files == total else min(99, int(100 * ns_files / total))
            ) if total else 0
     evals = [r["eval"] for r in rows if r["eval"]]
-    mean_pct = (round(sum(e.get("pct_saved", 0) for e in evals) / len(evals))
-                if evals else None)
-    mean_tok = (round(sum(e.get("est_tokens_saved", 0) for e in evals) / len(evals))
-                if evals else None)
+    # honest evals only: 0-hit probes are blind spots, and a scope living
+    # inside baseline-excluded dirs compares two different universes —
+    # neither proves a saving (same rule eval_repo.sh applies)
+    hevals = [e for e in evals
+              if isinstance(e.get("pct_saved"), int) and e["pct_saved"] >= 0
+              and e.get("ns_hits", 1) > 0]
+    mean_pct = (round(sum(e["pct_saved"] for e in hevals) / len(hevals))
+                if hevals else None)
+    mean_tok = (round(sum(e.get("est_tokens_saved", 0) for e in hevals) / len(hevals))
+                if hevals else None)
     tasks = [e for e in entries if e["kind"] == "task"]
     hits = [e for e in tasks if e.get("first_try_hit") is True]
     hit_known = [e for e in tasks if "first_try_hit" in e]
@@ -431,7 +439,10 @@ def render(rows, repo, root, files, owner, entries, evaled, file_cap):
     for i, r in enumerate(rows):
         ind = ' class="child"' if r["lvl"] else ""
         draft = ' <span class="draft">draft</span>' if r["draft"] else ""
-        pct = r["eval"].get("pct_saved") if r["eval"] else None
+        ev = r["eval"]
+        pct = ev.get("pct_saved") if ev else None
+        if ev and (pct is None or pct < 0 or ev.get("ns_hits", 1) == 0):
+            pct = None  # n/a — same honesty rule as eval_repo.sh
         out.append(
             f'<tr><td><span class="tag" style="background:{color[i]}">'
             f'{esc(r["tag"])}:</span></td>'
@@ -480,19 +491,21 @@ def render(rows, repo, root, files, owner, entries, evaled, file_cap):
             if not e:
                 continue
             rb, sb = e.get("root_bytes", 0), e.get("ns_bytes", 0)
-            pct = e.get("pct_saved", 0)
+            pct = e.get("pct_saved")
+            ptxt = (f"{pct}%" if isinstance(pct, int) and pct >= 0
+                    and e.get("ns_hits", 1) > 0 else "n/a")
             out.append(
                 f'<div class="bar-row"><div class="bar-lbl">'
                 f'<span class="t" style="color:{color[i]}">{esc(r["tag"])}:</span>'
                 f'<span class="n">{fmt_bytes(rb)} → {fmt_bytes(sb)} · '
-                f'~{fmt_num(e.get("est_tokens_saved", 0))} tok saved · {pct}%</span></div>'
+                f'~{fmt_num(e.get("est_tokens_saved", 0))} tok saved · {ptxt}</span></div>'
                 f'<div class="bar-track">'
                 f'<div class="bar-root" style="width:{100 * rb / maxb:.1f}%"></div>'
                 f'<div class="bar-ns" style="width:{100 * sb / maxb:.1f}%"></div>'
                 f'</div></div>')
         if mean_pct is not None:
             out.append(f'<p class="note">mean {mean_pct}% of search-output bytes '
-                       f'saved across {len(evals)} probed namespaces'
+                       f'saved across {len(hevals)} measurable namespaces'
                        f'{"" if evaled else " (latest logged evals)"} — '
                        f'probe: each row\'s own name.</p>')
     else:
@@ -621,8 +634,11 @@ def main(argv):
 
     n_files = sum(r["n_files"] for r in rows)
     evals = [r["eval"] for r in rows if r["eval"]]
-    mean = (round(sum(e.get("pct_saved", 0) for e in evals) / len(evals))
-            if evals else None)
+    hevals = [e for e in evals
+              if isinstance(e.get("pct_saved"), int) and e["pct_saved"] >= 0
+              and e.get("ns_hits", 1) > 0]
+    mean = (round(sum(e["pct_saved"] for e in hevals) / len(hevals))
+            if hevals else None)
     print(f"wrote {out_path}")
     print(f"{len(rows)} namespaces · {n_files}/{len(files)} files scoped"
           + (f" · mean {mean}% search bytes saved" if mean is not None else ""))

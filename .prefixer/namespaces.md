@@ -11,4 +11,5 @@ repo: prefixer
 | art:   | assets/**                                              | icon, images                                |
 | site:  | docs/**                                                | GitHub Pages landing page                   |
 | eval:  | eval/**                                                | measured eval harness, results              |
+| int:   | integrations/**                                        | hook configs for supported harnesses        |
 | ci:    | .github/**                                             | validate workflow                           |

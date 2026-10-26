@@ -51,6 +51,21 @@ grep -rnI $excl -- "$pat" . > "$rb" 2>/dev/null || true
 : > "$sb"
 plist="$(mktemp)"; trap 'rm -f "$rb" "$sb" "$plist"' EXIT
 scope_files "$scope" > "$plist"
+# a row whose every file lives inside dirs the baseline grep skips is
+# comparing two different universes — flag it instead of emitting a
+# meaningless (often wildly negative) pct_saved
+bex=0 have=0 allx=1
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  have=1
+  rest="$f" ex=0
+  while :; do
+    skipped_grep "${rest%%/*}" && { ex=1; break; }
+    case "$rest" in */*) rest="${rest#*/}" ;; *) break ;; esac
+  done
+  [ "$ex" -eq 0 ] && { allx=0; break; }
+done < "$plist"
+[ "$have" -eq 1 ] && [ "$allx" -eq 1 ] && bex=1
 while IFS= read -r f; do
   grep -nI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
 done < "$plist"
@@ -67,7 +82,9 @@ saved=$((rbytes - sbytes))
 toks=$((saved / 4))
 ts="$(date -u +%FT%TZ)"
 jesc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-line="{\"ts\":\"$ts\",\"task\":\"eval-scope\",\"ns\":\"$(jesc "$ns")\",\"pattern\":\"$(jesc "$pat")\",\"root_hits\":$rhits,\"root_bytes\":$rbytes,\"ns_hits\":$shits,\"ns_bytes\":$sbytes,\"bytes_saved\":$saved,\"pct_saved\":$pct,\"est_tokens_saved\":$toks}"
+pctj="$pct" bexj=""
+[ "$bex" -eq 1 ] && { pctj=null; bexj=',"baseline_excluded":true'; }
+line="{\"ts\":\"$ts\",\"task\":\"eval-scope\",\"ns\":\"$(jesc "$ns")\",\"pattern\":\"$(jesc "$pat")\",\"root_hits\":$rhits,\"root_bytes\":$rbytes,\"ns_hits\":$shits,\"ns_bytes\":$sbytes,\"bytes_saved\":$saved,\"pct_saved\":$pctj$bexj,\"est_tokens_saved\":$toks}"
 printf '%s\n' "$line"
 [ "$log" = "--log" ] && printf '%s\n' "$line" >> .prefixer/metrics.jsonl
 exit 0

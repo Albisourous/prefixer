@@ -38,6 +38,8 @@ existing lines.
   spaces nests under the most recent shallower row; its full tag is the
   ancestor chain: parent `payments:` + nested `checkout:` composes
   `payments:checkout:`. Depth is bounded by need, not by the format.
+- Readers ignore leading whitespace on a row line — a table nested in a
+  Markdown list is still a table.
 - **scope** — one or more globs, comma-separated. See grammar below.
 - **contains** — one line naming what lives there, for disambiguation
   between siblings. `TODO`, `undocumented`, or a `todo-` prefix marks a
@@ -64,6 +66,11 @@ Repo-relative, root-anchored glob:
 Characters that make scope text invalid: `$()`, backticks, `;`, `|`,
 `&`, `<`, `>`, newlines. A scope is a glob, never a shell command —
 consumers must tokenize, never evaluate.
+
+`[` and `]` are literal characters, not character classes — a scope
+`src/file[1].txt` matches the file named exactly that. No glob can
+produce an invalid pattern; an unmatched scope is a dead scope, never
+a parse error.
 
 ## Companion artifacts
 

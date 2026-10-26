@@ -576,5 +576,89 @@ case "$out" in
   *) echo "FAIL wired hook script resolves"; fail=1 ;;
 esac
 
+# --- literal [ ] { } in scopes: file[1].txt is a filename, not a class -
+br="$tmp/brack"; mkdir -p "$br/src" "$br/.prefixer"
+echo needle > "$br/src/file[1].txt"; echo decoy > "$br/src/file1.txt"
+cat > "$br/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: br
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| f: | src/file[1].txt | the bracket file |
+EOF
+out="$(cd "$br" && bash "$here/check_namespaces.sh" . 2>&1)"
+case "$out" in
+  *"0 failures"*) echo "ok   literal [ in scope resolves to named file" ;;
+  *) echo "FAIL literal [ in scope resolves to named file"; fail=1 ;;
+esac
+out="$(cd "$br" && bash "$here/eval_scope.sh" . needle f 2>/dev/null)"
+case "$out" in
+  *'"ns_hits":1'*) echo "ok   [ scope evals against literal file" ;;
+  *) echo "FAIL [ scope evals against literal file"; fail=1 ;;
+esac
+# an unclosed [ is a dead scope, never a regex error
+printf '# namespaces\nrepo: br\n\n| prefix | scope | contains |\n|--|--|--|\n| bad: | src/file[.txt | oops |\n' > "$br/.prefixer/namespaces.md"
+out="$(cd "$br" && bash "$here/check_namespaces.sh" . 2>&1 || true)"
+case "$out" in
+  *"dead scope: bad:"*) echo "ok   unclosed [ is a dead scope, not a crash" ;;
+  *) echo "FAIL unclosed [ is a dead scope, not a crash"; fail=1 ;;
+esac
+out="$(cd "$br" && python3 "$here/visualize.py" . --no-eval -o "$tmp/br-report.html" 2>&1)" && [ -f "$tmp/br-report.html" ] \
+  && echo "ok   visualize survives [ in scopes" || { echo "FAIL visualize survives [ in scopes"; fail=1; }
+
+# --- file scopes don't widen to the parent dir in coverage ------------
+cv="$tmp/cv"; mkdir -p "$cv/src/x" "$cv/.prefixer"
+echo x > "$cv/src/file.txt"; echo y > "$cv/src/x/b.ts"
+cat > "$cv/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: cv
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| f: | src/file.txt | one file |
+EOF
+out="$(cd "$cv" && bash "$here/check_namespaces.sh" . 2>&1)"
+case "$out" in
+  *"uncovered dir: src/x/"*) echo "ok   file scope doesn't cover sibling dirs" ;;
+  *) echo "FAIL file scope doesn't cover sibling dirs"; fail=1 ;;
+esac
+
+# --- indented rows parse: one grammar for check, eval, visualize ------
+ind="$tmp/ind"; mkdir -p "$ind/src" "$ind/extra" "$ind/.prefixer"
+echo x > "$ind/src/s.ts"; echo y > "$ind/extra/e.ts"
+printf '# namespaces\nrepo: ind\n\n| prefix | scope | contains |\n|--|--|--|\n| api: | src/** | things |\n  | extra: | extra/** | nested in a list |\n' > "$ind/.prefixer/namespaces.md"
+out="$(cd "$ind" && bash "$here/check_namespaces.sh" . 2>&1)"
+case "$out" in
+  *"checked 2 namespaces"*) echo "ok   indented row counts in lint" ;;
+  *) echo "FAIL indented row counts in lint"; fail=1 ;;
+esac
+out="$(cd "$ind" && bash "$here/eval_repo.sh" . 2>/dev/null | grep -c 'extra:')"
+[ "$out" -ge 1 ] && echo "ok   indented row evals" || { echo "FAIL indented row evals"; fail=1; }
+
+# --- scope inside baseline-excluded dirs: n/a, not a fake number ------
+gx="$tmp/gx"; mkdir -p "$gx/src" "$gx/vendor" "$gx/.prefixer"
+echo needle > "$gx/src/a.ts"
+awk 'BEGIN{for(i=0;i<400;i++)print "needle"}' > "$gx/vendor/big.txt"
+cat > "$gx/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: gx
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/** | source |
+| vend: | vendor/big.txt | escape hatch |
+EOF
+out="$(cd "$gx" && bash "$here/eval_scope.sh" . needle vend "vendor/big.txt" 2>/dev/null)"
+case "$out" in
+  *'"pct_saved":null,"baseline_excluded":true'*) echo "ok   excluded-scope probe flags baseline_excluded" ;;
+  *) echo "FAIL excluded-scope probe flags baseline_excluded"; fail=1 ;;
+esac
+out="$(cd "$gx" && bash "$here/eval_repo.sh" . 2>/dev/null)"
+case "$out" in
+  *"baseline excludes"*) echo "ok   eval_repo marks excluded-scope rows n/a" ;;
+  *) echo "FAIL eval_repo marks excluded-scope rows n/a"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }
