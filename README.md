@@ -1,2 +1,95 @@
-# prefixer-
-Add namespace prefix skill for your agent to improve search efficiency and performance 
+# prefixer
+
+Add namespace prefix skill for your agent to improve search efficiency and performance.
+
+**prefixer** is a cross-agent skill that teaches AI coding agents one
+discipline — *scope first, vary last, measure the delta* — applied wherever a
+prefix does work:
+
+| Where the prefix goes | What it buys you |
+|---|---|
+| In front of a search (`auth:`, `src/api/`) | Fewer tool calls and smaller results → fewer tokens burned exploring |
+| In front of a doc/chunk at index time | Tighter embeddings → better Hit@k with zero fine-tuning |
+| At the front of a prompt (stable content first) | Prompt-cache hits → cheaper input tokens, faster TTFT |
+
+The main win today: **better codebase search.** Agents that grep the whole
+tree pay for every irrelevant hit in tokens. An agent with a namespace map
+scopes the search first — the way you'd type `path:src/auth` into GitHub code
+search instead of reading the repo.
+
+**Before** (typical agent, illustrative):
+
+```
+grep "session" .            → 400+ hits, dumps pages into context
+grep "expire" .             → another wall of noise
+read 3 wrong files          → still guessing
+≈ 9 tool calls, thousands of tokens, answer found by accident
+```
+
+**After** (with prefixer):
+
+```
+read .prefixer/namespaces.md            → auth: = src/auth/**
+grep "session" src/auth/                → 12 hits
+read src/auth/session.ts:40-58          → found
+≈ 3 tool calls, a fraction of the tokens, answer found on purpose
+```
+
+It's grounded in published results — index-time prefix injection (ACL 2026:
++3–8% Hit@5), contextual retrieval (−49% retrieval failures), and prompt
+caching (byte-exact prefix reuse, 8–60× TTFT) — and it ships a tracking
+loop (`metrics.jsonl`) so the gains get measured instead of assumed.
+
+Fun fact: the skill itself is a prefix — stable context placed up front that
+shapes every turn after it. Same trick [humanizer](https://github.com/blader/humanizer)
+uses for prose, applied here to context layout.
+
+See [DESIGN.md](DESIGN.md) for the full design, the research base, and the
+build plan.
+
+## Status
+
+Design phase. Layout follows the humanizer model: one canonical `SKILL.md`
+at the root, thin plugin manifests per harness (`.agents/skills`,
+`.devin/skills`, `.claude-plugin`, `.cursor-plugin`), skills.sh for
+one-line installs.
+
+## Layout (planned)
+
+```
+SKILL.md                  canonical skill (root, single-file)
+references/               deep-dives loaded on demand
+scripts/                  namespace-map + metrics helpers
+*-plugin/                 per-harness manifests
+tests/                    manifest + format checks per adapter
+```
+
+## The short version of what it does
+
+1. **Maps your repo's namespaces** once into a small index file every agent
+   session can read instead of scanning the tree.
+2. **Searches scoped-first** — narrowest namespace, widen on miss.
+3. **Prefixes what gets indexed** — domain-descriptive prefixes on docs,
+   chunks, and embeddings inputs, discovered via the paper's tiered strategy.
+4. **Keeps prompts cache-friendly** — stable context early, volatile late.
+5. **Measures everything** — baseline first, log per task, report the delta.
+
+## Not to be confused with
+
+- **Prefix-tuning** (Li & Liang, ACL 2021): trains soft prompt vectors.
+  Ours are plain-text conventions — auditable, cacheable, no training.
+- **Prompt compression** (LLMLingua et al.): removes tokens. Complementary,
+  not bundled — prefixes organize what compression shrinks.
+
+## Key references
+
+- Varshney & Mc, *Index-Time Prefix Injection for Multi-Tenant Retrieval*
+  (ACL 2026 Industry) — https://aclanthology.org/2026.acl-industry.149/
+- Anthropic, *Introducing Contextual Retrieval* (2024)
+- Gim et al., *Prompt Cache* (MLSys 2024) — arXiv:2311.04934
+- Zhang et al., *Agentic Context Engineering* (ICLR 2026) — arXiv:2510.04618
+- Full list in [DESIGN.md §9](DESIGN.md#9-references)
+
+## License
+
+MIT — see [LICENSE](LICENSE).
