@@ -331,7 +331,9 @@ EOF
 # dist/ — generated dupes: a root grep pays for them, a scoped grep skips
 for f in auth/session auth/tokens billing/client; do
   mkdir -p "dist/src/$(dirname "$f")"
-  sed 's/^/\/\/ generated — do not edit\n/' "src/$f.ts" > "dist/src/$f.js" 2>/dev/null || cp "src/$f.ts" "dist/src/$f.js"
+  # echo+cat, not sed 's/^/...\n/': BSD sed emits a literal 'n', and this
+  # eval runs on macOS
+  { echo '// generated, do not edit'; cat "src/$f.ts"; } > "dist/src/$f.js"
 done
 
 emit README.md <<'EOF'
