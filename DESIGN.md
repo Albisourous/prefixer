@@ -382,9 +382,9 @@ Before shipping (superpowers TDD-for-skills, adapted):
 5. **Metrics without API access**: agents can't always see real token counts —
    is `est_tokens` (chars/4) acceptable, or should tracking stay
    tool-calls-only? (Recommend: keep both, mark estimate clearly.)
-6. **Git noise**: `.prefixer/metrics.jsonl` appended every task — commit it
-   (visibility, trend data) or gitignore it (clean history)? Recommend commit,
-   it's one line per task.
+6. **Git noise** — *resolved in v0.3.0*: commit `namespaces.md` (the shared
+   prefix), gitignore `metrics.jsonl` (local telemetry). Field report
+   confirmed this is the first question every user hits.
 
 ## 9. References
 

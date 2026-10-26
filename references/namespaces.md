@@ -45,6 +45,28 @@ search, not for humans browsing folders.
 - **Update incrementally.** Edit stale rows, add missing ones, keep the rest
   byte-identical. Never regenerate the file wholesale — rewrites drop curated
   detail and break the prompt-cache prefix of every session that loaded it.
+- **No silent TODOs.** A row whose prefix or `contains` still says `TODO` is
+  unfinished. A map full of them is a draft, not a map — finish or cut.
+
+## Relationship to agent docs
+
+`AGENTS.md`, `CLAUDE.md`, and READMEs often already describe the layout in
+prose. Don't maintain two drifting tables of contents:
+
+- `namespaces.md` is canonical for **search scope** — the globs and prefixes
+  the agent searches inside.
+- Agent docs stay canonical for prose explanations.
+- The scaffold seeds `contains` cells from those docs when it finds a
+  mention. If a repo's agent docs already carry a great layout section,
+  the map links to it rather than paraphrasing it.
+
+## Git handling
+
+- **Commit `namespaces.md`.** It is the shared prefix — every future
+  session and every teammate's agent benefits.
+- **`metrics.jsonl` is local telemetry.** The scaffold writes a
+  `.prefixer/.gitignore` for it. Commit it only if the team wants trend
+  data in history.
 
 ## Other repo shapes
 

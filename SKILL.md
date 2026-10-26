@@ -7,7 +7,7 @@ description: |
   hits, or when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
 allowed-tools:
   - read
   - grep
@@ -26,6 +26,10 @@ tokens. A namespace map — a dozen lines saying what lives where — lets it
 search inside the right area from the first call. This skill builds that
 map, keeps it alive, and holds the agent to scoped-first searching. It does
 one job: cheaper, better codebase search.
+
+**Size gate.** Under roughly a hundred files, or when the repo's shape is
+obvious at a glance, skip the map and scope searches by directory names —
+the map pays rent past that point.
 
 <IMPORTANT>
 If there is even a small chance a search in front of you could be scoped,
@@ -71,6 +75,15 @@ scaffold, then fix its guesses: name what each namespace is *for*.
 
 **Why:** adoption is incremental by design. The map is a working file, not a
 census — it earns a row when a search needs that row.
+
+**Drafts are not maps.** Any row whose prefix or `contains` still says
+`TODO` is unfinished — finish it or cut it before relying on the map. The
+scaffold reports how many draft rows remain.
+
+**Existing docs first.** If `AGENTS.md`, `CLAUDE.md`, or the README already
+describe the layout, seed `contains` from them (the scaffold does this) and
+treat `namespaces.md` as canonical for *search scope* — don't maintain two
+drifting tables of contents.
 
 ### 2. Keep it small and glob-backed
 
@@ -136,8 +149,10 @@ mention it instead of inventing a tag.
 
 **Rule:** Before recommending search changes, count the current behavior:
 searches per task, tool calls per task, first-try hit rate. Without a
-baseline there is no delta, only a story. See `references/metrics.md` for
-what to record and how to score it.
+baseline there is no delta, only a story. Record one by running a fixed
+probe — `bash scripts/measure_search.sh --baseline orientation -- grep -rn
+"TODO" .` at repo root — or by counting the first few tasks before the map
+exists. See `references/metrics.md` for what to record and how to score it.
 
 ### 8. Log every task
 
@@ -150,6 +165,15 @@ each task:
 
 `est_tokens` is chars/4, an estimate; keep the field even when you cannot
 measure exactly. At session end, report the delta against the baseline.
+`scripts/measure_search.sh` writes per-search lines (`hits`, optional
+`baseline` flag); hand-written task lines add `tool_calls` and
+`first_try_hit`. One schema, optional fields — `references/metrics.md`
+lists them.
+
+**Git handling.** Commit `namespaces.md` — it is the shared prefix every
+future session benefits from. `metrics.jsonl` is local telemetry; the
+scaffold writes a `.prefixer/.gitignore` for it. Commit it only if the team
+wants trend data.
 
 ## Red flags
 
@@ -163,6 +187,7 @@ These thoughts mean stop. You are rationalizing.
 | "The map is overkill for this task" | A partial map still pays off by the third search. |
 | "Skip the baseline, just apply it" | No baseline means no evidence. Measure first. |
 | "I'll regenerate the whole map, it's faster" | Regeneration drops curated detail and breaks cache. Edit the stale rows. |
+| "A scaffolded map counts" | A map full of TODO rows is a draft, not a map. Finish or cut them. |
 | "Search vendor dirs to be thorough" | Generated code is where tokens go to die. Search it only when it's the subject. |
 
 ## When not to prefix
@@ -172,6 +197,8 @@ These thoughts mean stop. You are rationalizing.
 - When the path already says it — a search inside `src/auth/` needs no
   `auth:` ceremony around it.
 - Vendored or generated code, unless it is the subject of the task.
+- Repos under ~100 files whose shape is obvious — scope by directory names
+  and skip the map.
 
 ## References
 

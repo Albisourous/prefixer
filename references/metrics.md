@@ -11,18 +11,30 @@ The point of tracking is that prefix claims stay honest. No baseline, no
 {"ts":"2026-10-26","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}
 ```
 
-| field | meaning |
-|-------|---------|
-| `ts` | date, ISO |
-| `task` | short tag for the task |
-| `searches` | grep/glob/search calls made |
-| `tool_calls` | total tool calls in the task |
-| `first_try_hit` | found the answer inside the first scoped search |
-| `est_tokens` | rough tokens consumed, chars/4 — an estimate, label it as one |
-| `notes` | optional, free text |
+One schema, optional fields. Every writer emits the same keys it can
+honestly fill:
 
-`scripts/measure_search.sh` wraps a search command and appends a line
-automatically — use it when you want real counts instead of estimates.
+| field | required? | meaning |
+|-------|-----------|---------|
+| `ts` | yes | date, ISO |
+| `task` | yes | short tag for the task |
+| `searches` | yes | search calls this line covers |
+| `est_tokens` | yes | rough tokens, chars/4 — an estimate, label it as one |
+| `hits` | per-search lines | result lines the search returned |
+| `tool_calls` | task lines | total tool calls in the task |
+| `first_try_hit` | task lines | answer found inside the first scoped search |
+| `baseline` | optional | `true` marks the pre-change probe line |
+| `notes` | optional | free text |
+
+`scripts/measure_search.sh` wraps a search command and appends a
+per-search line (`hits`) automatically — use it when you want real counts
+instead of estimates. `--baseline` tags the line as the pre-change probe.
+Hand-written task lines carry `tool_calls` and `first_try_hit`.
+
+**Git handling:** `metrics.jsonl` is local telemetry — the scaffold writes
+a `.prefixer/.gitignore` for it. Commit it only if the team wants shared
+trend data. `namespaces.md` is the opposite: always committed, because it
+is the shared prefix every session and teammate benefits from.
 
 ## Session metrics
 
@@ -45,7 +57,9 @@ When the work is an index or RAG corpus, use real retrieval vocabulary:
 
 ## Baseline → apply → report
 
-1. Record baseline rows *before* recommending changes (§13 of the skill).
+1. Record baseline rows *before* recommending changes — either a fixed
+   probe (`measure_search.sh --baseline orientation -- grep -rn "TODO" .`)
+   or the first few un-mapped tasks counted by hand.
 2. Apply the map / prefixes / ordering.
 3. Record the same tasks after.
 4. Report as a small table:

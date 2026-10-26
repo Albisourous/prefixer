@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0] - 2026-10-26
+
+Field-report fixes from a real first run on a small TypeScript repo.
+
+- `init_namespaces.sh` now descends one level into `src/`, `lib/`, `app/`
+  and monorepo parents; emits a `boot:` row for entry files; skips `*-out`
+  and other generated dirs; uses a wordlist for prefixes (`todo-*` marks
+  unfinished rows); seeds `contains` from AGENTS.md/CLAUDE.md/README.md;
+  reports draft-row count and a small-repo advisory.
+- `measure_search.sh` gained `--baseline` for pre-change probe lines and
+  writes `.prefixer/.gitignore` (metrics are local telemetry).
+- Metrics schema unified: `hits` (per-search lines) and
+  `tool_calls`/`first_try_hit` (task lines) are now documented optional
+  fields of one schema.
+- SKILL.md: size gate (~100 files), "drafts are not maps" TODO rule,
+  agent-docs precedence (namespaces.md is canonical for search scope),
+  git handling (commit the map, ignore the log).
+
 ## [0.2.0] - 2026-10-26
 
 Narrowed the skill to its core job: namespace-scoped codebase search.
