@@ -1,0 +1,23 @@
+name: Bug report
+description: Something broke — scaffold output, a script, or the skill's rules
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened vs. what should happen
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repo shape or command to reproduce
+      description: "e.g. `src/{auth,api,db}` with a git remote, or the exact command and output"
+      placeholder: bash scripts/init_namespaces.sh /path/to/repo → produced ...
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Agent / shell / OS
+      placeholder: Devin, bash 3.2, macOS 15

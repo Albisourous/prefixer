@@ -1,0 +1,19 @@
+name: Feature request
+description: A namespace rule, script behavior, or play the skill should run
+labels: [enhancement]
+body:
+  - type: textarea
+    id: pain
+    attributes:
+      label: What search pain does this solve?
+      description: The skill's bar is search efficiency — describe the wasted tokens or wrong files
+      placeholder: Broad greps keep pulling generated code into context when...
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What should change
+      placeholder: The scaffold should detect... / SKILL.md should say...
+    validations:
+      required: true
