@@ -466,3 +466,9 @@ Before shipping (superpowers TDD-for-skills, adapted):
 - *humanizer* — single-file agent skill; canonical source: Wikipedia,
   *Signs of AI writing*. https://github.com/blader/humanizer
   + https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+- *graphify* — mature multi-platform skill (python library + generated
+  per-harness skills via `tools/skillgen`). Adjacent tool, same goal
+  (cheaper agent exploration), different mechanism (persistent knowledge
+  graph vs scoped search). Comparison and borrowable packaging patterns:
+  [docs/vs-graphify.md](docs/vs-graphify.md).
+  https://github.com/Graphify-Labs/graphify

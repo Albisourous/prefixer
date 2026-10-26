@@ -16,6 +16,7 @@
         "search",
         "retrieval",
         "tokens",
+        "token-efficiency",
         "prompt-caching",
         "namespaces",
         "rag"

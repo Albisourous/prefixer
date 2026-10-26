@@ -1,4 +1,4 @@
 interface:
   display_name: "Prefixer"
-  short_description: "Scoped codebase search via a namespace map"
+  short_description: "Better codebase token efficiency via a namespace map for scoped search"
   default_prompt: "Use $prefixer to map this repo's namespaces and keep my searches scoped."

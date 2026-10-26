@@ -23,9 +23,14 @@ mkdir -p "$root/.prefixer"
 grep -qx 'metrics.jsonl' "$root/.prefixer/.gitignore" 2>/dev/null ||
   echo 'metrics.jsonl' >> "$root/.prefixer/.gitignore"
 
-files=$(find "$root" -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null | wc -l | tr -d ' ')
-
 skip="node_modules vendor dist build target out .git .prefixer __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
+
+# generated dirs inflate this count and misjudge the marginal-map note —
+# prune them, plus dot dirs, before counting real files
+nameargs=()
+for s in $skip; do nameargs+=(-o -name "$s"); done
+files=$(find "$root" \( -type d \( "${nameargs[@]:1}" \) -prune \) -o \
+  -type f -not -path '*/.*' -print 2>/dev/null | wc -l | tr -d ' ')
 
 # non-semantic words that appear in every repo — never a prefix
 stop_re='^(index|main|mod|init|utils?|helpers?|common|shared|base|file|code|misc|tmp|temp|readme|license|package)$'
@@ -98,6 +103,19 @@ syms() {
     awk '!seen[$0]++' | head -3 | paste -sd, - | sed 's/,/, /g'
 }
 
+# asset dirs hold mostly binary content — a content grep there is noise;
+# the useful search is names/inventory, and the map should say so
+is_binary_dir() { # dirpath → 0 if at least half the files are binary
+  local files total text
+  files="$(find "$1" -type f -not -name '.*' -print0 2>/dev/null |
+    tr '\0' '\n' | head -40 || true)"
+  [ -n "$files" ] || return 1
+  total="$(printf '%s\n' "$files" | grep -c .)"
+  text="$(printf '%s\n' "$files" | tr '\n' '\0' |
+    xargs -0 grep -lI '' 2>/dev/null | grep -c . || true)"
+  [ "${text:-0}" -le $((total / 2)) ]
+}
+
 # seed the 'contains' cell: agent-doc mention, then a sample of real file
 # contents (doc comment, exported symbols), then the bare file names —
 # every step derived from the codebase's own words
@@ -118,15 +136,15 @@ desc_for() { # dirname, dirpath
   done
   symtext="$(syms $(printf '%s\n' $pref $list | head -8) 2>/dev/null | head -1)"
   if [ -n "$symtext" ]; then printf 'exports %s' "$symtext"; return; fi
-  names="$(printf '%s\n' "$list" | head -60 | xargs -n1 basename 2>/dev/null |
-    sed 's/\.[^.]*$//' | sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
+  names="$(printf '%s\n' "$list" | head -60 | sed 's|.*/||; s/\.[^.]*$//' |
+    sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
   if [ -n "$names" ]; then printf 'files like %s' "$names"; return; fi
   printf 'undocumented: what lives here'
 }
 
 seen="" used_pfx="" last_pfx=""
 emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
-  local name="$1" scope="$2" path="$3" parent="$4" indent="$5" p
+  local name="$1" scope="$2" path="$3" parent="$4" indent="$5" p names
   shift 5
   # scopes repeat across parents — dedupe by scope, not name
   case " $seen " in *" $scope "*) return ;; esac
@@ -134,6 +152,7 @@ emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
   seen="$seen $scope"
   rows=$((rows + 1))
   p="$(pfx "$name" "$path" "$@")"
+  p="${p// /-}"   # prefixes are tags, not display names — no spaces
   # prefixes need only be unique within their parent level — a nested
   # checkout: under payments: and orders: reads orders:checkout: vs
   # payments:checkout:, already distinct
@@ -144,6 +163,12 @@ emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
   case " $used_pfx " in *" ${parent:-top}:$p "*) p="todo-$name" ;; esac
   used_pfx="$used_pfx ${parent:-top}:$p"
   last_pfx="$p"
+  if is_binary_dir "$path"; then
+    names="$(find "$path" -type f -not -name '.*' 2>/dev/null | head -40 |
+      sed 's|.*/||; s/\.[^.]*$//' | sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
+    printf '| %s%s: | %s | names only — binary assets: %s |\n' "$indent" "$p" "$scope" "${names:-files}"
+    return
+  fi
   printf '| %s%s: | %s | %s |\n' "$indent" "$p" "$scope" "$(desc_for "$name" "$path")"
 }
 
@@ -192,45 +217,53 @@ dir_budget=$((max_rows - reserve))
 
   # top level includes non-generated dot dirs (.github, .devin, tooling
   # dirs are real search intents); the leading dot is stripped for the
-  # prefix, kept in the scope
-  topnames=""
+  # prefix, kept in the scope. Names are arrays — a spaced dir name must
+  # stay one name, not two tokens.
+  topnames=()
   for d in "$root"/*/ "$root"/.[!.]*/; do
     [ -d "$d" ] || continue
     name="$(basename "$d")"
     skipped_gen "$name" && continue
-    topnames="$topnames $name"
+    topnames+=("$name")
   done
-  for name in $topnames; do
-    [ "$rows" -ge "$dir_budget" ] && break
-    emit "${name#.}" "$name/**" "$root/$name" "" "" $topnames
+  unmapped=""
+  for name in ${topnames[@]+"${topnames[@]}"}; do
+    if [ "$rows" -ge "$dir_budget" ]; then
+      unmapped="${unmapped:+$unmapped, }$name"; continue
+    fi
+    emit "${name#.}" "$name/**" "$root/$name" "" "" ${topnames[@]+"${topnames[@]}"}
   done
 
   # descend into dirs that hold most of a repo's code, then one level
   # deeper where a child holds sub-teams (payments → checkout, refunds)
   for parent in src lib app packages apps services modules libs; do
     [ -d "$root/$parent" ] || continue
-    kids=""
+    kids=()
     for d in "$root/$parent"/*/; do
       [ -d "$d" ] || continue
       child="$(basename "$d")"
       skipped_gen "$child" && continue
-      kids="$kids $child"
+      kids+=("$child")
     done
-    for child in $kids; do
-      [ "$rows" -ge "$dir_budget" ] && break 2
-      emit "$child" "$parent/$child/**" "$root/$parent/$child" "" "" $kids
+    for child in ${kids[@]+"${kids[@]}"}; do
+      if [ "$rows" -ge "$dir_budget" ]; then
+        unmapped="${unmapped:+$unmapped, }$parent/$child"; continue
+      fi
+      emit "$child" "$parent/$child/**" "$root/$parent/$child" "" "" ${kids[@]+"${kids[@]}"}
       cp="$last_pfx"
-      gkids=""
+      gkids=()
       for d in "$root/$parent/$child"/*/; do
         [ -d "$d" ] || continue
         g="$(basename "$d")"
         skipped_gen "$g" && continue
-        gkids="$gkids $g"
+        gkids+=("$g")
       done
-      [ "$(echo $gkids | wc -w)" -ge 2 ] || continue
-      for g in $gkids; do
-        [ "$rows" -ge "$dir_budget" ] && break 3
-        emit "$g" "$parent/$child/$g/**" "$root/$parent/$child/$g" "$cp" "  " $gkids
+      [ "${#gkids[@]}" -ge 2 ] || continue
+      for g in ${gkids[@]+"${gkids[@]}"}; do
+        if [ "$rows" -ge "$dir_budget" ]; then
+          unmapped="${unmapped:+$unmapped, }$parent/$child/$g"; continue
+        fi
+        emit "$g" "$parent/$child/$g/**" "$root/$parent/$child/$g" "$cp" "  " ${gkids[@]+"${gkids[@]}"}
       done
     done
   done
@@ -281,6 +314,14 @@ dir_budget=$((max_rows - reserve))
     echo "| boot: | $entries | entry points, boot wiring |"
   fi
 } > "$out"
+
+# the 12-row cap must be visible — silent truncation looks like a
+# complete map and hides the draft work a human still owes
+if [ -n "$unmapped" ]; then
+  echo >> "$out"
+  echo "unmapped: $unmapped (capped at $max_rows rows — raise the cap or fold into a parent scope)" >> "$out"
+  echo "note: capped at $max_rows rows — unmapped dirs: $unmapped" >&2
+fi
 
 drafts=$(grep -cE 'todo-|undocumented' "$out" || true)
 echo "wrote $out · $rows namespaces, $drafts rows needing a human pass" >&2

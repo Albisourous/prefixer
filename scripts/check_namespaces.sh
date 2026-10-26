@@ -18,9 +18,38 @@ warn() { echo "warn $1"; warns=$((warns+1)); }
 
 skipped_gen() { case " $skip " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
 
-# does a scope glob resolve to at least one real path under .?
-# find -path treats * as matching slashes too — good enough for existence
-resolve() { find . -path "./$1" -print -quit 2>/dev/null | grep -q .; }
+# scope tokens without eval: expand {a,b} arm-wise, then split commas —
+# spaces inside names survive and nothing ever runs as shell
+expand_scope() {
+  local s="$1" pre mid post arm
+  case "$s" in
+    *'{'*)
+      pre="${s%%\{*}"; post="${s#*\}}"
+      mid="${s#*\{}"; mid="${mid%%\}*}"
+      local IFS=','
+      for arm in $mid; do
+        arm="$(printf '%s' "$arm" | sed 's/^ *//; s/ *$//')"
+        expand_scope "$pre$arm$post"
+      done ;;
+    *) printf '%s\n' "$s" | tr ',' '\n' | sed 's/^ *//; s/ *$//' ;;
+  esac
+}
+
+# glob → anchored regex with real shell-glob semantics: * stays inside
+# its dir level, ** crosses, ? is one non-/ char — find -path gets this
+# wrong, its * matches slashes too (dead scopes would sail through).
+# scopes are repo-relative and root-anchored: *.md matches root files
+# only; a leading / means the same thing, not absolute path
+glob_re() {
+  printf '%s' "$1" | sed -e 's|^/||' -e 's/[.+^$|()]/\\&/g' -e 's/\*\*/@@/g' \
+    -e 's/\*/[^\/]*/g' -e 's/\?/[^\/]/g' \
+    -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
+}
+
+# does a scope token resolve to at least one real path under .?
+# grep -c, not -q: -q exits on first match, SIGPIPEs find, and pipefail
+# then reports failure for a successful match
+resolve() { find . | sed 's|^\./||' | grep -cE "$(glob_re "$1")" >/dev/null 2>&1; }
 
 grep -q '^repo:' "$map" || warn "no repo: header; add 'repo: <slug>' for multi-codebase uniqueness"
 
@@ -52,27 +81,25 @@ while IFS= read -r line; do
   recent="$recent$lvl	$tag
 "
 
-  # scope text is eval'd below for brace expansion — anything that is not
-  # plain glob syntax fails here instead of running as shell
+  # metachars get a clear fail even though nothing below evals — a scope
+  # full of shell syntax is a mistake, not a glob
   case "$scope" in
-    *'$'*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*'('*|*')'*|*"'"*|*'"'*|*$'\n'*)
+    *'$('*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*$'\n'*)
       fail "unsafe scope: ${tag}: → $scope"; continue ;;
   esac
 
-  # eval expands brace lists {a,b} the way the searching shell does, and
-  # splits commas outside braces — the naive split shreds {A,B,C} rows
+  # brace lists expand arm-wise, commas split outside braces, spaces in
+  # names survive — the same tokens a searching shell would see
   live=0 genflag=0
-  toks="$(eval "printf '%s\n' $scope" 2>/dev/null || printf '%s\n' "$scope")"
   while IFS= read -r tok; do
-    tok="${tok%,}"
     [ -z "$tok" ] && continue
     case "$tok" in
       node_modules/*|node_modules|vendor/*|dist/*|build/*|target/*|coverage/*|*-out/*|*-out)
         genflag=1 ;;
     esac
     resolve "$tok" && live=$((live+1))
-  done <<< "$toks"
-  [ "$genflag" -eq 1 ] && warn "generated path mapped: ${tag}:"
+  done <<< "$(expand_scope "$scope")"
+  [ "$genflag" -eq 1 ] && fail "generated path mapped: ${tag}: — never map vendored/generated"
   [ "$live" -eq 0 ] && fail "dead scope: ${tag}: → $scope"
 done < "$map"
 
@@ -81,18 +108,27 @@ done < "$map"
 # coverage — dirs an agent might search that no row claims (warn only)
 cover() { # dirname → 0 if a scope claims it, its parent, or lives inside it
   local d="$1" tok
-  for tok in $scopes_all; do
+  # read line-wise: a spaced scope token must stay one token
+  while IFS= read -r tok; do
     case "$tok" in
-      "$d"|"$d/**"|"$d/"*) return 0 ;;
+      "$d"|"$d/"*) return 0 ;;
       */**) [ "${d#"${tok%/**}/"}" != "$d" ] && return 0 ;;
     esac
-  done
+  done <<< "$scopes_all"
   return 1
 }
-# scope tokens feed a case-pattern eval below — drop any that carry shell
-# metachars (they already FAILed the row lint; do not run them twice)
-scopes_all="$(grep '^|' "$map" | cut -d'|' -f3 | tr ',' ' ' | tr -s ' ' '\n' | grep -v '^ *$' |
-  grep -vE '[$`'"'"'";|&<>()]' | sort -u)"
+# coverage sees the same tokens the row lint resolved — braces expanded,
+# commas split, metachar scopes dropped (they already FAILed above).
+# built in-shell, not $(): bash 3.2 misparses quoted case patterns there
+scopes_all=""
+while IFS= read -r raw; do
+  case "$raw" in ''|scope|-*) continue ;; esac
+  case "$raw" in *'$('*|*\`*|*';'*|*[|]*|*'&'*|*'<'*|*'>'*) continue ;; esac
+  scopes_all="$scopes_all$(expand_scope "$raw")
+"
+done <<EOF
+$(awk -F'|' '/^\|/ { print $3 }' "$map" | sed 's/^[ \t]*//; s/[ \t]*$//')
+EOF
 for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
@@ -116,12 +152,11 @@ ufiles=""
 for f in *; do
   [ -f "$f" ] || continue
   hit=0
-  for tok in $scopes_all; do
-    # {a,b} is not case-pattern syntax — as alternation it is a|b
-    ctok="$(printf '%s' "$tok" | tr -d '{}' | tr ',' '|')"
-    eval "case \"\$f\" in $ctok) hit=1 ;; esac" 2>/dev/null
-    [ "$hit" -eq 1 ] && break
-  done
+  # case patterns are never word-split, so spaced tokens match whole —
+  # no eval needed
+  while IFS= read -r tok; do
+    case "$f" in $tok) hit=1; break ;; esac
+  done <<< "$scopes_all"
   [ "$hit" -eq 0 ] && ufiles="$ufiles $f"
 done
 [ -n "$ufiles" ] && warn "uncovered root files:$ufiles"

@@ -25,6 +25,8 @@ honestly fill:
 | `tool_calls` | task lines | total tool calls in the task |
 | `first_try_hit` | task lines | answer found inside the first scoped search — agent judgment, or `--hit`/`--miss` on the script |
 | `baseline` | optional | `true` marks the pre-change probe line |
+| `error` | optional | `true` marks a probe whose command failed — `hits` is unreliable |
+| `exit` | optional | the probe command's exit status when `error` is set |
 | `notes` | optional | free text |
 
 `scripts/measure_search.sh` wraps a search command and appends a
@@ -34,8 +36,10 @@ the nearest `.prefixer/` walking up, else the git toplevel — running it
 from a subdirectory cannot create a stray `.prefixer/`. Flags:
 `--baseline` tags the line as the pre-change probe, `--scope <glob>`
 overrides scope inference (default: the command's path args, `root` when
-none), `--hit`/`--miss` records `first_try_hit`. Hand-written task lines
-carry `tool_calls` and `first_try_hit`.
+none), `--hit`/`--miss` records `first_try_hit`. A probe whose command
+exits nonzero is logged with `"error":true` and its exit status — a crashed
+search is not a 0-hit search, and phantom misses would pollute the
+baseline. Hand-written task lines carry `tool_calls` and `first_try_hit`.
 
 **Git handling:** `metrics.jsonl` is local telemetry — the scaffold writes
 a `.prefixer/.gitignore` for it. Commit it only if the team wants shared

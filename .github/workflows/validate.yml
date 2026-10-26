@@ -11,3 +11,4 @@ jobs:
         run: |
           shopt -s nullglob
           for s in scripts/*.sh eval/*.sh; do bash -n "$s" || exit 1; done
+          python3 -m py_compile scripts/*.py

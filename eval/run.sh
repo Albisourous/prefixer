@@ -51,6 +51,8 @@ done < "$here/repos.txt"
   echo "\`eval/run.sh\` shallow-clones each repo in \`repos.txt\`, scaffolds a"
   echo "map, lints it, and probes every namespace with \`eval_repo.sh\` — each"
   echo "row's own name as the grep pattern, nothing configured per repo."
+  echo "Rows whose name never appears in their files report \`n/a\` and are"
+  echo "excluded — a 0-hit probe can't prove savings."
   echo "Regenerated weekly by \`.github/workflows/eval.yml\`."
   echo
   echo "| repo | shape | namespaces | mean saved | range | lint |"

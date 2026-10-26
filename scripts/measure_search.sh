@@ -30,7 +30,14 @@ if [ "$#" -eq 0 ]; then
   exit 2
 fi
 
-out="$("$@" 2>/dev/null || true)"
+# capture failure honestly: a crashed probe is not a 0-hit search —
+# swallowing it would pollute the baseline with phantom misses
+errf="$(mktemp)"; trap 'rm -f "$errf"' EXIT
+out="$("$@" 2>"$errf")"; rc=$?
+if [ "$rc" -ne 0 ]; then
+  sed 's/^/probe stderr: /' "$errf" >&2
+  echo "warn probe exited $rc — logging error:true, hits are unreliable" >&2
+fi
 hits="$(printf '%s' "$out" | grep -c . || true)"
 bytes="$(printf '%s' "$out" | wc -c | tr -d ' ')"
 est=$(( bytes / 4 ))
@@ -62,6 +69,7 @@ esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 extra=""
 [ "$baseline" = true ] && extra=',"baseline":true'
 [ -n "$hit" ] && extra="$extra,\"first_try_hit\":$hit"
+[ "$rc" -ne 0 ] && extra="$extra,\"error\":true,\"exit\":$rc"
 printf '{"ts":"%s","task":"%s","searches":1,"scope":"%s","hits":%s,"est_tokens":%s%s}\n' \
   "$(date -u +%FT%TZ)" "$(esc "$tag")" "$(esc "$scope")" "$hits" "$est" "$extra" \
   >> "$root/.prefixer/metrics.jsonl"

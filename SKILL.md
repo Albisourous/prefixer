@@ -2,13 +2,15 @@
 name: prefixer
 description: |
   Give agents a namespace map of a codebase so searches start scoped instead
-  of broad. Use to save tokens and cut context cost when agents search code:
-  at the start of work in an unfamiliar or large repo, when a task needs
-  repeated codebase search, when a grep or glob returns a wall of hits, or
-  when results keep landing in unrelated parts of the tree.
+  of broad. Use to improve a codebase's token efficiency — save tokens and
+  cut context cost when agents search code: at the start of work in an
+  unfamiliar or large repo, when a task needs repeated codebase search,
+  when a grep or glob returns a wall of hits, when results keep landing in
+  unrelated parts of the tree, or when the user asks how to make their
+  codebase cheaper or more token-efficient for agents.
 license: MIT
 metadata:
-  version: "0.8.0"
+  version: "0.9.0"
 allowed-tools:
   - read
   - grep
@@ -240,6 +242,7 @@ These thoughts mean stop. You are rationalizing.
 - `scripts/measure_search.sh` — run a search and log it in one step
 - `scripts/eval_scope.sh` — measure the token delta of a scoped search vs root
 - `scripts/eval_repo.sh` — lint + eval every namespace in a map, mean % saved
+- `scripts/visualize.py` — render the map on the file tree + the measured savings as an HTML report
 
 Adjacent playbooks kept for pipeline and prompt authors (outside this
 skill's core job): `references/index-prefixes.md`,

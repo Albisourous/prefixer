@@ -1,5 +1,104 @@
 # Changelog
 
+## [0.9.0] - 2026-10-26
+
+A visualizer: see the map painted on the codebase and the savings it
+measures — the graphify-style HTML report, for scoped search.
+
+- **`scripts/visualize.py`** — stdlib-only, no dependencies. Reads
+  `.prefixer/namespaces.md`, walks the repo (same generated-dir
+  exclusions and glob semantics as the shell scripts), and writes a
+  self-contained `.prefixer/report.html`: stat cards, the map table,
+  a coverage partition bar plus an interactive file tree where every
+  file is colored by the namespace that scopes it (unscoped files
+  gray), per-namespace scoped-vs-root byte bars reusing
+  `eval_scope.sh` probes, and a `metrics.jsonl` timeline with
+  first-try-hit markers. Flags: `-o OUT`, `--no-eval` (fall back to
+  logged eval lines), `--max-files N`, `--open`. `report.html` is
+  appended to `.prefixer/.gitignore` like `metrics.jsonl`.
+
+## [0.8.2] - 2026-10-26
+
+Eval hardening: the scripts now measure what they claim to — real glob
+semantics, an honest baseline, visible failure modes — plus the docs and
+corpus to back the claims.
+
+- **Glob semantics are defined and enforced.** Scopes are repo-relative
+  and root-anchored: `*` stays inside one directory level, `**` crosses,
+  `?` is one char, `{a,b}` expands arm-wise, a leading `/` anchors at
+  root. `check_namespaces.sh` and `eval_scope.sh` share one
+  glob→regex resolver — `find -path` (whose `*` crossed `/`) is gone.
+- **No `eval` on scope cells.** A hostile `namespaces.md` could inject
+  shell through the old expansion; scope strings are now tokenized, never
+  executed, and metacharacters fail the lint.
+- **Spaced paths work end to end.** Scaffold, lint, and eval keep
+  `my dir/**` as one token instead of shredding it.
+- **Honest baseline.** `eval_scope.sh`'s root search is case-sensitive
+  and excludes the same generated/vendor dirs the map does — a grep
+  through `node_modules` measured a strawman, not the counterfactual.
+- **Blind spots are flagged, not scored.** `eval_repo.sh` reports `n/a`
+  for a namespace whose own name gets 0 scoped hits instead of a
+  meaningless 100%.
+- **pipefail SIGPIPE fix.** `resolve()` used `grep -q`, which exits on
+  first match and SIGPIPEs `find` — under `pipefail` every live scope
+  reported dead. Fixed with `grep -c`.
+- **Generated dirs are a fail,** matching the "never map them" rule —
+  previously a warn.
+- **Binary/asset namespaces are marked `names only`** by the scaffold —
+  a content grep there is noise; the useful search is filenames.
+- **`measure_search.sh` logs crashed probes as `"error":true`** with the
+  exit status instead of a phantom 0-hit search.
+- **The 12-row cap says so.** Scaffolded maps end with `unmapped:` naming
+  the dirs the cap dropped; previously they vanished silently.
+- **`head -200` truncation removed** from scoped-path expansion — it
+  undercounted `ns_bytes` on large namespaces and inflated `pct_saved`.
+- **`eval_scope.sh` escapes JSON output** (`ns`, `pattern`) — quoted
+  patterns no longer emit malformed lines into `metrics.jsonl`.
+- **Namespace lookup is exact-match** — regex metachars in a prefix
+  (`.dev` matching the `xdev` row) can't mis-resolve a scope.
+
+Docs and corpus:
+
+- **Eval corpus grows to 13 repos.** `eval/repos.txt` gains the
+  most-installed agent-skill repos — mattpocock/skills, anthropics/skills,
+  addyosmani/agent-skills, blader/humanizer, and Graphify-Labs/graphify.
+  Corpus mean: 85% of search-output bytes saved across 123 namespaces.
+- **README** leads the measured table with the skill repos, and "Not to
+  be confused with" gains knowledge-graph skills (graphify: persistent
+  queryable graph vs a 12-line search map — they stack) and skills packs
+  (many skills vs one skill doing one job).
+- **Site** shows the 13-repo table with per-repo ranges, a chart of every
+  namespace's saved %, a graphify/skills-pack FAQ entry, and JSON-LD to
+  match. `docs/llms.txt` gains a Compare section.
+- **`docs/vs-graphify.md`** — the full prefixer-vs-graphify comparison
+  (different denominators, different questions, when each wins) plus
+  field notes on the packaging patterns worth borrowing from
+  Graphify-Labs/graphify: generated platform skills, doc-drift tests,
+  version stamps, host detection, benchmark discipline.
+- **`scripts/install.sh`** — host-detecting installer (the graphify
+  `install.py` pattern at shell scale). Finds `.claude`/`.devin`/`.agents`
+  markers, installs project- or user-level, stamps `.prefixer_version`
+  beside the skill for stale-install detection.
+- **Findability.** README gains a 30-second quickstart, release +
+  skills.sh badges, and a platform table; the site gains a real 1200x630
+  `og-image.png` (twitter `summary_large_image`), a HowTo JSON-LD block
+  for the install steps, `robots.txt`, and `sitemap.xml`; expanded meta
+  keywords. Repo description updated to the 13-repo number.
+
+## [0.8.1] - 2026-10-26
+
+Discovery: surface the skill for "token efficiency" asks. No behavior
+change.
+
+- **SKILL.md description** gains "improve a codebase's token efficiency"
+  and a trigger for "how do I make my codebase cheaper/more
+  token-efficient for agents" so other agents recommend prefixer on that
+  ask. First sentence unchanged; manifests still conform.
+- Manifest keywords gain `token-efficiency` (Claude, Cursor, Devin,
+  marketplace).
+- README and `docs/llms.txt` agent-facing notes name the token-efficiency
+  ask; `agents/openai.yaml` short description mentions it.
+
 ## [0.8.0] - 2026-10-26
 
 Field report, round two: telemetry that stays honest, a scaffold that

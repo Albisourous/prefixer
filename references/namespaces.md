@@ -40,8 +40,14 @@ different tags. Empty dirs are skipped rather than mapped.
   directory's name or distinguishing segment, the dominant term in the
   files it scopes. Invented categories drift as the repo evolves; derived
   names track it.
-- `scope`: one or more path globs. These are the working part — they are what
-  get passed to grep and glob calls.
+- `scope`: one or more path globs, comma-separated. These are the working
+  part — they are what get passed to grep and glob calls. Scopes are
+  repo-relative and **root-anchored**: `*.md` matches root files only (add
+  `docs/**` for a tree), `dir/*` stays inside `dir`, `dir/**` crosses
+  levels, `{src,lib}/**` expands arm-wise, a leading `/` means the same
+  root anchor, explicit filenames are legal, and spaces in names are fine.
+  What is not legal: shell syntax — `$()`, backticks, `;`, `|`, `&`,
+  redirection. A scope is a glob, not a command; the linter fails it.
 - `contains`: one line, written to disambiguate between sibling namespaces,
   not to describe the folder. "auth: login, sessions, tokens" tells a
   searcher this is where credential checks live; "auth: authentication code"
@@ -75,6 +81,13 @@ different tags. Empty dirs are skipped rather than mapped.
   detail and break the prompt-cache prefix of every session that loaded it.
 - **No silent TODOs.** A row whose prefix or `contains` still says `TODO` is
   unfinished. A map full of them is a draft, not a map — finish or cut.
+- **Binary namespaces are names-only.** A scope that is mostly assets
+  (images, atlases, vendored binaries) cannot be content-grepped — the
+  scaffold marks it `names only — binary assets`. Search there means
+  filenames (`rg --files`, `find`), and savings metrics on it are noise.
+- **The row cap is honest.** Scaffolded maps cap at 12 rows; anything cut
+  lands on an `unmapped:` line at the bottom of the map. Raise the cap or
+  fold the dirs into a parent scope — never leave them invisible.
 
 ## Relationship to agent docs
 

@@ -49,48 +49,92 @@ if [ -z "$scope" ]; then
   [ -n "$scope" ] || { echo "no prefix '${ns}:' in $map" >&2; exit 1; }
 fi
 
-# the scope text is eval'd for brace expansion below — refuse anything
-# that is not plain glob syntax
+# scope tokens without eval: expand {a,b} arm-wise, then split commas —
+# spaces inside names survive and nothing ever runs as shell
+expand_scope() {
+  local s="$1" pre mid post arm
+  case "$s" in
+    *'{'*)
+      pre="${s%%\{*}"; post="${s#*\}}"
+      mid="${s#*\{}"; mid="${mid%%\}*}"
+      local IFS=','
+      for arm in $mid; do
+        arm="$(printf '%s' "$arm" | sed 's/^ *//; s/ *$//')"
+        expand_scope "$pre$arm$post"
+      done ;;
+    *) printf '%s\n' "$s" | tr ',' '\n' | sed 's/^ *//; s/ *$//' ;;
+  esac
+}
+
+# glob → anchored regex with real shell-glob semantics: * stays inside
+# its dir level, ** crosses, ? is one non-/ char — find -path gets this
+# wrong, its * matches slashes too. scopes are repo-relative and
+# root-anchored: *.md is root files only, leading / means the same
+glob_re() {
+  printf '%s' "$1" | sed -e 's|^/||' -e 's/[.+^$|()]/\\&/g' -e 's/\*\*/@@/g' \
+    -e 's/\*/[^\/]*/g' -e 's/\?/[^\/]/g' \
+    -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
+}
+
+# real paths a glob token resolves to — dir or file, spaces preserved,
+# no cap: truncating here undercounts ns_bytes and inflates pct_saved
+match_scope() {
+  find . | sed 's|^\./||' | grep -E "$(glob_re "$1")" 2>/dev/null
+}
+
+# metachars get a clear refusal even though nothing below evals — a scope
+# full of shell syntax is a mistake, not a glob
 case "$scope" in
-  *'$'*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*'('*|*')'*|*"'"*|*'"'*|*$'\n'*)
+  *'$('*|*\`*|*';'*|*'|'*|*'&'*|*'<'*|*'>'*|*$'\n'*)
     echo "unsafe scope: $scope" >&2; exit 1 ;;
 esac
 
 cd "$root" || exit 1
 rb="$(mktemp)"; sb="$(mktemp)"; trap 'rm -f "$rb" "$sb"' EXIT
 
-# baseline — what an unscoped agent pays: repo-wide grep, .git excluded
-grep -rniI --exclude-dir=.git -- "$pat" . > "$rb" 2>/dev/null || true
+# baseline — what an unscoped-but-sane agent pays: repo-wide grep minus
+# the generated dirs every map excludes anyway (a grep through
+# node_modules measures a strawman, not the counterfactual). Case-
+# sensitive: probes are the namespaces' own names, not fuzzy queries.
+excl="--exclude-dir=*-out"
+for d in .git node_modules vendor dist build target out __pycache__ \
+         .next .cache venv .venv .idea .vscode coverage .turbo .output \
+         .nuxt .svelte-kit storybook-static DerivedData Pods bin obj; do
+  excl="$excl --exclude-dir=$d"
+done
+grep -rnI $excl -- "$pat" . > "$rb" 2>/dev/null || true
 
 # scoped — expand the namespace's globs to concrete paths, grep only those
 : > "$sb"
 paths=""
-# eval expands {a,b} brace globs and splits commas outside braces
-toks="$(eval "printf '%s\n' $scope" 2>/dev/null || printf '%s\n' "$scope")"
 while IFS= read -r tok; do
-  tok="${tok%,}"
   [ -z "$tok" ] && continue
-  case "$tok" in */**) tok="${tok%/**}" ;; esac
+  # only a literal trailing /** collapses to its dir — the glob pattern
+  # */** would match any token containing / and shred src/*.ts or /*.md
+  case "$tok" in *'/**') tok="${tok%\*\*}" ;; esac
   if printf '%s' "$tok" | grep -q '[*?\[]'; then
-    for f in $(find . -path "./$tok" 2>/dev/null | head -200); do
-      paths="$paths $f"
-    done
+    while IFS= read -r f; do
+      [ -n "$f" ] && paths="$paths$f
+"
+    done < <(match_scope "$tok")
   elif [ -e "$tok" ]; then
-    paths="$paths $tok"
+    paths="$paths$tok
+"
   fi
-done <<< "$toks"
+done <<< "$(expand_scope "$scope")"
 # normalize to a deduped file list — overlapping globs and dir+file pairs
 # would otherwise grep the same file twice and inflate hits
 plist="$(mktemp)"; trap 'rm -f "$rb" "$sb" "$plist"' EXIT
-for p in $paths; do
+while IFS= read -r p; do
+  [ -z "$p" ] && continue
   if [ -d "$p" ]; then
     find "$p" -type f -not -name '.*'
   else
     printf '%s\n' "$p"
   fi
-done | sort -u > "$plist"
+done <<< "$paths" | sort -u > "$plist"
 while IFS= read -r f; do
-  grep -niI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
+  grep -nI -- "$pat" "$f" 2>/dev/null | sed "s|^|$f:|" >> "$sb"
 done < "$plist"
 
 count() { # file → hits, bytes
