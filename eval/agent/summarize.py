@@ -82,14 +82,22 @@ def scoped_to_dir(blob, tag_dirs, want_dir):
 
 
 def main():
+    if len(sys.argv) < 3:
+        sys.exit("usage: summarize.py RUNS_DIR TASKS_FILE")
     runs, tasks_file = Path(sys.argv[1]), Path(sys.argv[2])
     tasks = {}
     for line in tasks_file.read_text().splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line or line.startswith("#") or "|" not in line:
             continue
-        tid, prompt, epath, esym = [p.strip() for p in line.split("|")]
-        tasks[tid] = (epath, esym)
+        # rsplit the last two fields: a prompt may itself contain '|'
+        tid, rest = line.split("|", 1)
+        parts = [p.strip() for p in rest.rsplit("|", 2)]
+        if len(parts) != 3:
+            print(f"warn: malformed task line skipped: {line!r}",
+                  file=sys.stderr)
+            continue
+        tasks[tid.strip()] = (parts[1], parts[2])
 
     rows = []
     for out_f in sorted(runs.glob("*__r*.out.txt")):
