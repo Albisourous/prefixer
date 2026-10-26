@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prefixer — scoped code search skill for AI agents</title>
-<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search — fewer tokens, faster searches. Works with Devin, Claude Code, Codex, and Cursor.">
+<title>Prefixer · scoped code search skill for AI agents</title>
+<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search. Fewer tokens, faster searches. Works with Devin, Claude Code, Codex, and Cursor.">
 <meta name="keywords" content="prefixer, agent skill, code search, codebase search, namespace map, AI coding agent, scoped search, token efficiency, prompt caching, Devin skill, Claude Code skill, Cursor skill, Codex skill">
 <link rel="canonical" href="https://albisourous.github.io/prefixer/">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Prefixer — scoped code search skill for AI agents">
-<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree — measured 89–91% of search-output bytes saved on public repos.">
+<meta property="og:title" content="Prefixer · scoped code search skill for AI agents">
+<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree. Measured 89-91% of search-output bytes saved on public repos.">
 <meta property="og:url" content="https://albisourous.github.io/prefixer/">
 <meta property="og:image" content="https://albisourous.github.io/prefixer/icon.svg">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Prefixer — scoped code search skill for AI agents">
+<meta name="twitter:title" content="Prefixer · scoped code search skill for AI agents">
 <meta name="twitter:description" content="A namespace map that keeps agent searches inside the right part of the tree. Fewer tool calls, fewer tokens.">
 <script type="application/ld+json">
 {
@@ -23,7 +23,7 @@
   "name": "prefixer",
   "alternateName": "Prefixer agent skill",
   "softwareVersion": "0.7.0",
-  "description": "An agent skill for scoped codebase search — a namespace map that keeps agent searches inside the right part of the tree, plus playbooks for index-time doc prefixes and prompt-cache ordering.",
+  "description": "An agent skill for scoped codebase search. A namespace map keeps agent searches inside the right part of the tree; playbooks cover index-time doc prefixes and prompt-cache ordering.",
   "codeRepository": "https://github.com/Albisourous/prefixer",
   "programmingLanguage": "Shell",
   "license": "https://github.com/Albisourous/prefixer/blob/main/LICENSE",
@@ -68,6 +68,21 @@
     color: #0d1117; font-weight: 600; border-radius: 8px;
   }
   .cta:hover { text-decoration: none; opacity: .9; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0 8px; }
+  .stat { border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat strong {
+    display: block; font-size: 1.5rem; line-height: 1.2;
+    background: linear-gradient(90deg, var(--teal), var(--blue));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .stat span { color: var(--muted); font-size: .85rem; }
+  .term { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0 0 14px; }
+  .term-bar { display: flex; align-items: center; gap: 6px; background: #161b22; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .term-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+  .term-bar i:first-child { background: #f85149; } .term-bar i:nth-child(2) { background: #d29922; } .term-bar i:nth-child(3) { background: #3fb950; }
+  .term-bar span { margin-left: 8px; color: var(--muted); font-size: .8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .term pre { margin: 0; border: 0; border-radius: 0; font-size: .8rem; line-height: 1.5; }
+  @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
   footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: .9rem; }
   table { border-collapse: collapse; width: 100%; margin: 0 0 14px; }
   td, th { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
@@ -76,58 +91,86 @@
 </head>
 <body>
 
-<img class="logo" src="icon.svg" alt="prefixer — namespace prefixes for AI agent code search" width="420">
+<img class="logo" src="icon.svg" alt="prefixer: namespace prefixes for AI agent code search" width="420">
 
 <h1>Prefixer is an agent skill for scoped codebase search.</h1>
 
 <p>AI coding agents that grep the whole tree pay for every irrelevant hit in
-tokens and tool calls. Prefixer gives the agent a small namespace map — a
-table of short prefixes to the parts of the repo that matter — so searches
-start scoped, widen only on a miss, and land inside the right files first.</p>
+tokens and tool calls. Prefixer gives the agent a small namespace map:
+short prefixes pointing at the parts of the repo that matter. Searches
+start scoped, widen on a miss, and land in the right files first.</p>
 
-<p>It is plain Markdown and shell scripts, not a service and not an MCP
-server. One <code>SKILL.md</code>, five reference playbooks, and a small
-script toolkit — scaffold, lint, measure, eval, test. It works with any
-agent that reads skills:
+<p>The whole thing is Markdown and shell scripts; nothing runs as a
+service. One <code>SKILL.md</code>, five reference playbooks, and a small
+toolkit for scaffolding, linting, measuring, and evaluating. It works with
+any agent that reads skills:
 <a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, and friends.</p>
+
+<div class="stats">
+  <div class="stat"><strong>89-91%</strong><span>mean search bytes saved, two public repos</span></div>
+  <div class="stat"><strong>20</strong><span>namespaces measured, 68-100% range</span></div>
+  <div class="stat"><strong>0</strong><span>dependencies: markdown and shell</span></div>
+</div>
 
 <a class="cta" href="https://github.com/Albisourous/prefixer">View on GitHub →</a>
 
 <h2>How it works</h2>
 
+<img src="flow.svg" alt="Flow: query, read namespaces.md, pick the matching prefix, grep that scope. On a miss, widen to parent then root." width="720" style="max-width:100%;height:auto;margin:0 0 16px">
+
 <ul>
   <li><strong>Scope first.</strong> On entry to a repo, the agent reads
-  <code>.prefixer/namespaces.md</code> — rows like
-  <code>auth: | src/auth/** | login, tokens, sessions</code> — and searches
-  inside the matching namespace instead of the tree.</li>
+  <code>.prefixer/namespaces.md</code>, rows like
+  <code>auth: | src/auth/** | login, tokens, sessions</code>, and searches
+  inside the matching namespace instead of the whole tree.</li>
   <li><strong>Derived, not declared.</strong> The scaffold names namespaces
-  from the codebase's own vocabulary — distinguishing dir-name segments,
-  dominant file terms — never a hardcoded wordlist. Every map carries a
-  <code>repo:</code> qualifier, so <code>payments:auth:</code> and
-  <code>checkout-service:auth:</code> stay distinct across codebases, and
-  rows nest for sub-teams (<code>payments:checkout:</code>).</li>
+  from the codebase's own vocabulary, like a dir-name segment no sibling
+  shares or the dominant term in the files a row scopes. No hardcoded
+  wordlist. Every map carries a <code>repo:</code> qualifier, so
+  <code>payments:auth:</code> and <code>checkout-service:auth:</code> stay
+  distinct across codebases, and rows nest for sub-teams
+  (<code>payments:checkout:</code>).</li>
   <li><strong>Map the segment, not the world.</strong> No map? The agent
-  builds only the 3–5 namespaces the current task touches. A partial map is
+  builds only the 3-5 namespaces the current task touches. A partial map is
   a legal, working state.</li>
   <li><strong>Widen one level on a miss.</strong> A scoped search that misses
-  widens to the parent scope, then the root — never a blind second pass.</li>
+  widens to the parent scope, then the root. Never a blind second pass.</li>
   <li><strong>Measure the delta.</strong> Each scoped search appends a line to
-  <code>.prefixer/metrics.jsonl</code>; <code>check_namespaces.sh</code>
-  lints the map for dead scopes and <code>eval_repo.sh</code> proves the
-  bytes saved.</li>
+  <code>.prefixer/metrics.jsonl</code>. <code>check_namespaces.sh</code>
+  lints the map for dead scopes; <code>eval_repo.sh</code> produces the
+  bytes-saved number.</li>
 </ul>
 
 <h2>Measured on public repos</h2>
 
-<img src="eval-chart.svg" alt="Measured search output: root grep vs scoped grep — 85–94% fewer bytes" width="720" style="max-width:100%;height:auto;margin:0 0 16px">
+<img src="eval-chart.svg" alt="Measured search output: root grep vs scoped grep, 85 to 94% fewer bytes" width="720" style="max-width:100%;height:auto;margin:0 0 16px">
 
 <table>
   <tr><th>repo</th><th>namespaces</th><th>mean bytes saved</th><th>range</th></tr>
-  <tr><td><a href="https://github.com/obra/superpowers">obra/superpowers</a></td><td>8</td><td>89%</td><td>69–100%</td></tr>
-  <tr><td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td><td>12</td><td>91%</td><td>68–100%</td></tr>
+  <tr><td><a href="https://github.com/obra/superpowers">obra/superpowers</a></td><td>8</td><td>89%</td><td>69-100%</td></tr>
+  <tr><td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td><td>12</td><td>91%</td><td>68-100%</td></tr>
 </table>
 
-<p class="muted">Scoped grep vs root grep, same query per namespace —
+<div class="term">
+  <div class="term-bar"><i></i><i></i><i></i><span>eval_repo.sh · real output</span></div>
+<pre>$ bash scripts/eval_repo.sh ~/repos/superpowers
+
+checked 8 namespaces: 0 failures, 0 warnings
+
+prefix      root_hits  root_bytes   ns_hits   ns_bytes    pct
+assets:            45       5414         0         0   100%
+docs:             178      35320        67     10800    69%
+hooks:            222      31628        10       896    97%
+scripts:          266      40796        19      2061    94%
+skills:          1037     142879       201     33039    76%
+tests:            561      84704       165     15702    81%
+.github:          117      17598         0         0   100%
+boot:             380      48066         0         0   100%
+
+mean pct_saved: 89% across 8 namespaces</pre>
+</div>
+
+<p class="muted">Scoped grep vs root grep, same query per namespace.
 <code>bash scripts/eval_repo.sh &lt;repo&gt;</code> on your own repo gets
 your numbers.</p>
 
@@ -148,7 +191,7 @@ Devin) in your project. Full instructions in the
   <li>Agent searches return walls of hits from the wrong modules.</li>
   <li>You want a persistent orientation map future sessions reuse.</li>
   <li>You index docs or chunks for RAG and want tighter embeddings.</li>
-  <li>You care about prompt-cache hits and token cost, measured not guessed.</li>
+  <li>You care about prompt-cache hits and token cost, and want them measured.</li>
 </ul>
 
 <h2>Three prefix positions</h2>
@@ -156,18 +199,18 @@ Devin) in your project. Full instructions in the
 <table>
   <tr><th>Where the prefix goes</th><th>What it buys</th></tr>
   <tr><td>In front of a search (<code>auth:</code>, <code>src/api/</code>)</td>
-      <td>Fewer tool calls, smaller results — fewer tokens exploring</td></tr>
+      <td>Fewer tool calls, smaller results: fewer tokens spent exploring</td></tr>
   <tr><td>In front of a doc at index time</td>
-      <td>Tighter embedding clusters — better Hit@k, zero fine-tuning</td></tr>
+      <td>Tighter embedding clusters: better Hit@k with zero fine-tuning</td></tr>
   <tr><td>At the front of a prompt</td>
-      <td>Prompt-cache hits — cheaper input, faster TTFT</td></tr>
+      <td>Prompt-cache hits: cheaper input tokens, faster TTFT</td></tr>
 </table>
 
 <p class="muted">The index-time and cache-ordering playbooks ship in
-<code>references/</code>. The research base — Anthropic Contextual Retrieval,
-index-time prefix injection (ACL 2026), Prompt Cache, RadixAttention — is
-collected in
-<a href="https://github.com/Albisourous/prefixer/blob/main/DESIGN.md">DESIGN.md</a>.</p>
+<code>references/</code>. DESIGN.md collects the research base: Anthropic
+Contextual Retrieval, index-time prefix injection (ACL 2026), Prompt Cache,
+and RadixAttention.
+<a href="https://github.com/Albisourous/prefixer/blob/main/DESIGN.md">Read it</a>.</p>
 
 <footer>
   <p><a href="https://github.com/Albisourous/prefixer">Albisourous/prefixer on GitHub</a> ·

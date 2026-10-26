@@ -22,7 +22,7 @@ skipped_gen() { case " $skip " in *" $1 "*) return 0 ;; esac; case "$1" in *-out
 # find -path treats * as matching slashes too — good enough for existence
 resolve() { find . -path "./$1" -print -quit 2>/dev/null | grep -q .; }
 
-grep -q '^repo:' "$map" || warn "no repo: header — add 'repo: <slug>' for multi-codebase uniqueness"
+grep -q '^repo:' "$map" || warn "no repo: header; add 'repo: <slug>' for multi-codebase uniqueness"
 
 tag_seen="" recent=""
 while IFS= read -r line; do

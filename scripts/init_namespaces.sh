@@ -168,7 +168,7 @@ slug="$(basename "${remote:-$(cd "$root" && pwd)}" .git | tr 'A-Z' 'a-z' | tr -c
 } > "$out"
 
 drafts=$(grep -cE 'todo-|undocumented' "$out" || true)
-echo "wrote $out — $rows namespaces, $drafts rows needing a human pass" >&2
+echo "wrote $out · $rows namespaces, $drafts rows needing a human pass" >&2
 if [ "$files" -lt 100 ]; then
-  echo "note: ~$files files — under ~100 the map is marginal; scope by dir names" >&2
+  echo "note: ~$files files; under ~100 the map is marginal; scope by dir names" >&2
 fi

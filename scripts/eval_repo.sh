@@ -9,7 +9,7 @@ set -uo pipefail
 root="${1:-.}"
 map="$root/.prefixer/namespaces.md"
 here="$(cd "$(dirname "$0")" && pwd)"
-[ -f "$map" ] || { echo "no map at $map — run init_namespaces.sh first" >&2; exit 1; }
+[ -f "$map" ] || { echo "no map at $map; run init_namespaces.sh first" >&2; exit 1; }
 
 repo="$(grep -m1 '^repo:' "$map" | sed 's/^repo: *//')"
 printf 'repo: %s\n\n' "${repo:-$(basename "$(cd "$root" && pwd)")}"
