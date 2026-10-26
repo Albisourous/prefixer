@@ -52,6 +52,8 @@ read src/auth/session.ts:40-58          → found
 every namespace — the same grep at repo root and inside the namespace's
 globs — on public repos:
 
+<img src="assets/eval-chart.svg" alt="Measured search output: root grep vs scoped grep — 85–94% fewer bytes" width="720">
+
 | repo | namespaces | mean bytes saved | range |
 |---|---|---|---|
 | obra/superpowers | 8 | **89%** | 69–100% |
