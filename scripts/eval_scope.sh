@@ -112,5 +112,10 @@ pctj="$pct" bexj=""
 [ "$bex" -eq 1 ] && { pctj=null; bexj=',"baseline_excluded":true'; }
 line="{\"ts\":\"$ts\",\"task\":\"eval-scope\",\"ns\":\"$(jesc "$ns")\",\"pattern\":\"$(jesc "$pat")\",\"root_hits\":$rhits,\"root_bytes\":$rbytes,\"ns_hits\":$shits,\"ns_bytes\":$sbytes,\"bytes_saved\":$saved,\"pct_saved\":$pctj$bexj,\"est_tokens_saved\":$toks}"
 printf '%s\n' "$line"
-[ "$log" = "--log" ] && printf '%s\n' "$line" >> .prefixer/metrics.jsonl
+if [ "$log" = "--log" ]; then
+  # explicit-scope runs can land in a repo with no .prefixer yet — the
+  # append must not die on a missing dir
+  mkdir -p .prefixer
+  printf '%s\n' "$line" >> .prefixer/metrics.jsonl
+fi
 exit 0

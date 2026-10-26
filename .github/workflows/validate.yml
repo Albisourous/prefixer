@@ -10,5 +10,5 @@ jobs:
       - name: syntax-check every script
         run: |
           shopt -s nullglob
-          for s in scripts/*.sh eval/*.sh; do bash -n "$s" || exit 1; done
-          python3 -m py_compile scripts/*.py
+          for s in scripts/*.sh eval/*.sh eval/agent/*.sh eval/agent/adapters/*.sh; do bash -n "$s" || exit 1; done
+          python3 -m py_compile scripts/*.py eval/agent/*.py
