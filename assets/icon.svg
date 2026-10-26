@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="prefixer icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10161f"/>
+      <stop offset="1" stop-color="#0b0f14"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#34e0c0"/>
+      <stop offset="1" stop-color="#2bb3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="url(#bg)"/>
+  <!-- scoped row: namespace chip + lit result -->
+  <rect x="96" y="136" width="120" height="56" rx="16" fill="url(#acc)"/>
+  <circle cx="156" cy="154" r="9" fill="#0b0f14"/>
+  <circle cx="156" cy="174" r="9" fill="#0b0f14"/>
+  <rect x="232" y="136" width="184" height="56" rx="16" fill="url(#acc)" opacity="0.92"/>
+  <!-- unscoped rows, dimmed -->
+  <rect x="96" y="232" width="200" height="56" rx="16" fill="#9aa7b4" opacity="0.22"/>
+  <rect x="96" y="328" width="156" height="56" rx="16" fill="#9aa7b4" opacity="0.22"/>
+</svg>
