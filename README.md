@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.svg" alt="prefixer — namespace prefixes for AI agent code search" width="120">
+  <img src="assets/icon.svg" alt="prefixer — namespace prefixes for AI agent code search" width="420">
 </p>
 
 # prefixer
