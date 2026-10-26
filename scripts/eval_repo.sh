@@ -51,6 +51,6 @@ while IFS=$'\t' read -r tag leaf scope; do
 done <<< "$pairs"
 echo
 [ "$n" -gt 0 ] && echo "mean pct_saved: $((tot / n))% across $n namespaces"
-[ "$skipped" -gt 0 ] && echo "($skipped namespaces n/a — 0 hits for their own name; probe them with real query patterns)"
-[ "$excl" -gt 0 ] && echo "($excl namespaces n/a — scope lives inside dirs the baseline excludes)"
+[ "$skipped" -gt 0 ] && echo "($skipped namespaces n/a: 0 hits for their own name; probe them with real query patterns)"
+[ "$excl" -gt 0 ] && echo "($excl namespaces n/a: scope lives inside dirs the baseline excludes)"
 exit 0

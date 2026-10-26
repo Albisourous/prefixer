@@ -21,12 +21,14 @@ agent_ready() {
 }
 
 # write .devin/hooks.v1.json: PostToolUse logging always, SessionStart
-# map injection only when MAPPED=1 — the only difference between arms
+# map injection only when MAPPED=1 — the only difference between arms.
+# devin's file IS the hooks object (integrations/hooks.devin.json),
+# unlike claude's settings.json which nests it under "hooks"
 agent_hooks() { # FIXTURE LOG MAPPED
   local fx="$1" log="$2" mapped="$3" ss=""
   [ "$mapped" = 1 ] && ss='"SessionStart":[{"matcher":"","hooks":[{"type":"command","command":"cd '"$fx"' && bash '"$PFX_ROOT"'/scripts/session_start.sh --json"}]}],'
   mkdir -p "$fx/.devin"
-  printf '{"hooks":{%s"PostToolUse":[{"matcher":"","hooks":[{"type":"command","command":"bash %s/eval/agent/hook_posttool.sh %s"}]}]}}\n' \
+  printf '{%s"PostToolUse":[{"matcher":"","hooks":[{"type":"command","command":"bash %s/eval/agent/hook_posttool.sh %s"}]}]}\n' \
     "$ss" "$PFX_ROOT" "$log" > "$fx/.devin/hooks.v1.json"
 }
 

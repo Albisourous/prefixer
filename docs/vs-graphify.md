@@ -4,8 +4,8 @@ Both tools exist because agents burn too many tokens exploring
 codebases. They attack different halves of the problem:
 
 - **[graphify](https://github.com/Graphify-Labs/graphify) replaces search
-  with traversal.** Build a persistent model of the repo — nodes, edges,
-  communities — then query the model instead of reading files.
+  with traversal.** Build a persistent model of the repo (nodes, edges,
+  communities) then query the model instead of reading files.
 - **Prefixer fixes search itself.** Keep grep, but make every grep land
   inside the right directory on the first try.
 
@@ -24,7 +24,7 @@ codebases. They attack different halves of the problem:
 
 graphify's README pitches "cut agent token spend by 80%". Prefixer
 measures 79% mean bytes saved across its 18-repo corpus (81%
-specifically on Graphify-Labs/graphify). These are not contradictory —
+specifically on Graphify-Labs/graphify). These are not contradictory;
 they are different denominators:
 
 - **Prefixer's number** is bytes of *search output*: same grep at repo
@@ -41,19 +41,19 @@ search cheaper. Graphify does not make grep cheaper; it makes grep
 ## When graphify wins
 
 - **Relational questions.** "Trace the path from AuthModule to
-  Database", "explain SwinTransformer" — grep cannot answer these;
+  Database", "explain SwinTransformer": grep cannot answer these;
   traversal can.
 - **Cold onboarding.** The generated report's god nodes, communities,
   and suggested questions are a guided tour of a codebase you do not
   understand yet.
-- **Mixed corpora.** Papers, screenshots, videos, tickets — things a
+- **Mixed corpora.** Papers, screenshots, videos, tickets: things a
   directory map does not describe.
 - **Audit trails.** Every edge tagged EXTRACTED / INFERRED / AMBIGUOUS;
   you know what was found vs inferred.
 
 ## When prefixer wins
 
-- **Working, not studying.** Editing, refactoring, bugfixing — tasks
+- **Working, not studying.** Editing, refactoring, bugfixing: tasks
   where the agent already knows what it is looking for and just needs
   to find it fast.
 - **Zero-install environments.** CI, sandboxes, restricted agents.
@@ -71,8 +71,8 @@ search cheaper. Graphify does not make grep cheaper; it makes grep
 ## They stack
 
 Run graphify when you need to *understand* a system; run prefixer so
-that every search an agent makes — including inside graphify's own
-repo — stays cheap. Nothing in either excludes the other.
+that every search an agent makes, including inside graphify's own
+repo, stays cheap. Nothing in either excludes the other.
 
 ---
 
@@ -88,11 +88,11 @@ integrations). Patterns worth studying, roughly in order of value:
    core+references split). `skillgen --check` fails CI on drift,
    `--bless` refreshes `expected/` snapshots. Prefixer's equivalent is
    `validate-package.py` checking invariants over hand-edited
-   manifests — fine at 3 platforms, but a generator is the shape that
+   manifests, fine at 3 platforms, but a generator is the shape that
    survives 10+.
 
 2. **Make docs provably true.** `tests/test_architecture_doc.py`
-   imports every symbol ARCHITECTURE.md names — the doc cannot drift
+   imports every symbol ARCHITECTURE.md names, so the doc cannot drift
    from the code. Prefixer's analog: the validator asserts every
    `references/`/`scripts/` path SKILL.md mentions exists. Extending
    that to script flags and public interfaces is cheap insurance.
@@ -111,7 +111,7 @@ integrations). Patterns worth studying, roughly in order of value:
    model for every system, identical token budgets, a `--max-spend`
    cap, a spend ledger per run, a judge validated against a second
    judge (Cohen's kappa published), and reproduction commands. You do
-   not need all of it — the transferable bits are *same harness for
+   not need all of it. The transferable bits are *same harness for
    every system*, *a ledger for every run*, and *a reproduce line
    under every claim*. Prefixer's `eval/run.sh` + RESULTS.md already
    follow that shape.

@@ -3,8 +3,8 @@
 One invariant, everything follows from it:
 
 **A prompt cache is a prefix match.** The provider reuses KV state for the
-longest byte-exact leading span. The first byte that differs — a timestamp,
-a reordered key, a changed tool list — invalidates everything after it.
+longest byte-exact leading span. The first byte that differs, a timestamp,
+a reordered key, a changed tool list, invalidates everything after it.
 Markers and flags cannot fix order; only order fixes order.
 
 ## Stability classes
@@ -22,7 +22,7 @@ Tag every piece of context before placing it:
 
 1. **Stable bytes first, always.** Identity and rules, then session-stable
    project context, then volatile content. The namespace map belongs in the
-   per-session layer — it changes rarely, reads constantly.
+   per-session layer; it changes rarely, reads constantly.
 2. **Append, don't rewrite.** Conversation history is a growing prefix. New
    turns go at the end; rewriting or compacting earlier turns resets reuse
    for everything after the edit point.
@@ -42,7 +42,7 @@ Tag every piece of context before placing it:
 ## For skills and rules files you write
 
 A skill file is a prefix other agents will load. Keep it byte-stable between
-releases — small diffs, not rewrites — and put anything volatile (dates,
+releases, small diffs, not rewrites, and put anything volatile (dates,
 counts, "last updated") at the bottom or in a `references/` file. Progressive
 disclosure is the other half: frontmatter stays tiny because it is
 always-loaded prefix; bulk lives in files read only when needed.
@@ -52,5 +52,5 @@ always-loaded prefix; bulk lives in files read only when needed.
 - One-off prompts with no repeated prefix get nothing from ordering.
 - Some harnesses hold the whole system prompt constant for you; check before
   reordering what you don't control.
-- Cache reuse needs a *second* identical prefix — a session of one-offs won't
+- Cache reuse needs a *second* identical prefix: a session of one-offs won't
   show the win. That's expected, not a failure.

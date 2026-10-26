@@ -18,11 +18,14 @@ here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib_scope.sh"
 
 json="" repo=""
-for a in "$@"; do
-  case "$a" in
+while [ $# -gt 0 ]; do
+  case "$1" in
     --json) json=1 ;;
-    --repo) repo="${2:-}"; shift ;;
+    --repo) repo="${2:?--repo needs a dir}"; shift ;;
+    --repo=*) repo="${1#--repo=}" ;;
+    *) shift; continue ;;
   esac
+  shift
 done
 
 root="$(map_root "${repo:-$PWD}")"
@@ -37,8 +40,8 @@ health=""
 if [ -x "$here/check_namespaces.sh" ] || [ -f "$here/check_namespaces.sh" ]; then
   verdict="$(cd "$root" && bash "$here/check_namespaces.sh" . 2>&1 | tail -1 || true)"
   case "$verdict" in
-    *"0 failures, 0 warnings"*) health="prefixer: map is healthy — search inside these scopes first, widen one level on a miss." ;;
-    *) health="prefixer: map needs attention ($verdict) — run check_namespaces.sh; scopes below may be stale." ;;
+    *"0 failures, 0 warnings"*) health="prefixer: map is healthy, search inside these scopes first, widen one level on a miss." ;;
+    *) health="prefixer: map needs attention ($verdict); run check_namespaces.sh, scopes below may be stale." ;;
   esac
 fi
 

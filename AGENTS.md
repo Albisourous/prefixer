@@ -9,18 +9,18 @@ the prompt agents read, and the source of truth. There is no build step.
 
 ## Layout
 
-- `SKILL.md` — the skill: YAML frontmatter plus numbered rules.
-- `SPEC.md` — the namespaces.md format contract for other tools.
-- `references/` — deep dives loaded on demand (progressive disclosure).
-- `scripts/` — helpers the skill calls, plus `validate-package.py`.
-  `lib_scope.sh` is the single copy of the scope grammar — scripts
+- `SKILL.md`: the skill: YAML frontmatter plus numbered rules.
+- `SPEC.md`: the namespaces.md format contract for other tools.
+- `references/`: deep dives loaded on demand (progressive disclosure).
+- `scripts/`: helpers the skill calls, plus `validate-package.py`.
+  `lib_scope.sh` is the single copy of the scope grammar; scripts
   source it, never re-implement expansion or glob matching inline.
-- `integrations/` — snippets consumer repos drop in: session-start
+- `integrations/`: snippets consumer repos drop in: session-start
   hook configs and a PR lint workflow.
-- `.claude-plugin/`, `.cursor-plugin/`, `.devin-plugin/` — per-harness
+- `.claude-plugin/`, `.cursor-plugin/`, `.devin-plugin/`: per-harness
   manifests. Claude's manifest points its loader at the root
   (`"skills": ["./"]`).
-- `agents/openai.yaml` — display data for OpenAI-compatible agents.
+- `agents/openai.yaml`: display data for OpenAI-compatible agents.
 
 ## Invariants
 

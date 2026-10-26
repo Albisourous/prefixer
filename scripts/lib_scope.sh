@@ -14,14 +14,15 @@
 # the filesystem. Shell metachars are never evaluated: a scope is a glob,
 # not a command.
 
-# Directory names no map row or search should ever touch. PREFIXER_SKIP
-# is the scaffold/lint list; the counterfactual root grep in eval_scope
-# uses GREP_SKIP — the same list minus .prefixer, because an unscoped
-# agent's grep really would hit the map file, and excluding it would
-# flatter the measured savings. .work is eval-corpus scratch (cloned
-# repos): vendored code that is never the project being measured.
+# Directory names no map row or search should ever touch. The eval
+# baseline uses the same list: its counterfactual is "this repo without
+# prefixer", so .prefixer/ stays out of the root grep too — the map holds
+# every namespace name as text and metrics.jsonl echoes every logged
+# pattern, which would inflate the baseline against itself. Agent-
+# tooling dot dirs (.devin/, .claude/) DO stay in the baseline: a real
+# root grep hits them. .work is eval-corpus scratch (cloned repos):
+# vendored code that is never the project being measured.
 PREFIXER_SKIP="node_modules vendor dist build target out .git .prefixer .work __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
-PREFIXER_GREP_SKIP="node_modules vendor dist build target out .git .work __pycache__ .next .cache venv .venv .idea .vscode coverage .turbo .output .nuxt .svelte-kit storybook-static DerivedData Pods bin obj"
 
 # find(1) primaries that prune every skipped dir — a scope landing on a
 # parent dir (eval/) must not descend into the generated dirs inside it.
@@ -32,10 +33,6 @@ GEN_PRUNE+=(\) -prune \))
 unset _d
 
 skipped_gen() { case " $PREFIXER_SKIP " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
-
-# same check against the baseline grep's skip list — used to flag rows
-# whose scope lives entirely outside the counterfactual search universe
-skipped_grep() { case " $PREFIXER_GREP_SKIP " in *" $1 "*) return 0 ;; esac; case "$1" in *-out) return 0 ;; esac; return 1; }
 
 # scope text → one glob token per line. {a,b} expands arm-wise, commas
 # split outside braces; spaces inside names survive. No eval anywhere —
@@ -160,13 +157,13 @@ scope_files() { # scope → file list, one per line (cwd = repo root)
   done <<< "$paths" | sort -u
 }
 
-# --exclude-dir args for the counterfactual root grep: the generated and
-# vendored dirs every map excludes anyway (a grep through node_modules
-# measures a strawman, not the counterfactual) — but not .prefixer,
-# which an unscoped grep would genuinely hit
+# --exclude-dir args for the counterfactual root grep: the generated,
+# vendored, and prefixer-owned dirs a map excludes anyway (a grep
+# through node_modules measures a strawman, and a hit on the map or the
+# metrics log measures prefixer, not the repo)
 grep_excludes() {
   printf -- "--exclude-dir=*-out"
-  for d in $PREFIXER_GREP_SKIP; do printf ' --exclude-dir=%s' "$d"; done
+  for d in $PREFIXER_SKIP; do printf ' --exclude-dir=%s' "$d"; done
   printf '\n'
 }
 

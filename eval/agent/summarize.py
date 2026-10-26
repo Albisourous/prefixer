@@ -128,10 +128,12 @@ def main():
         })
 
     print("# Agent-behavior eval\n")
-    print("Every tool call logged via PostToolUse; final output checked for")
-    print("expected path + symbol. Arms differ only in the map: `baseline`")
-    print("has no `.prefixer/`, `mapped` has the scaffolded map injected at")
-    print("session start. Agents are stochastic — read means, not single runs.\n")
+    print("Every tool call logged (PostToolUse hook or the ACP")
+    print("session/update stream, adapter-dependent); final output checked")
+    print("for expected path + symbol. Arms differ only in the map:")
+    print("`baseline` has no `.prefixer/`, `mapped` has the scaffolded map")
+    print("injected at session start. Agents are stochastic; read means,")
+    print("not single runs.\n")
     print("| task | arm | tool calls | searches | search bytes | total bytes |"
           " first-try scoped | correct answer | self-init map |")
     print("|---|---|---|---|---|---|---|---|---|")

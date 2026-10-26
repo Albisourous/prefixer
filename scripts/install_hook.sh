@@ -77,7 +77,7 @@ f, cmd, wrap = os.environ["F"], os.environ["CMD"], os.environ["WRAP"]
 try:
     cfg = json.load(open(f))
 except json.JSONDecodeError:
-    raise SystemExit(f"{f}: not JSON — add the hook by hand")
+    raise SystemExit(f"{f}: not JSON, add the hook by hand")
 entry = {"matcher": "", "hooks": [{"type": "command", "command": cmd}]}
 hooks = cfg if wrap == "whole" else cfg.setdefault("hooks", {})
 hooks.setdefault("SessionStart", []).append(entry)
@@ -86,7 +86,7 @@ open(f, "a").write("\n")
 print(f"merged SessionStart hook into {f}")
 PY
   else
-    echo "$f exists — add this under hooks.SessionStart yourself:" >&2
+    echo "$f exists, add this under hooks.SessionStart yourself:" >&2
     hook "$cmd" >&2
   fi
 done

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something broke — scaffold output, a script, or the skill's rules
+description: Something broke, in scaffold output, a script, or the skill's rules
 labels: [bug]
 body:
   - type: textarea

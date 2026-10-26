@@ -4,13 +4,13 @@ Based on Varshney & Mc, *Index-Time Prefix Injection for Multi-Tenant
 Retrieval* (ACL 2026 Industry) and Anthropic's contextual retrieval. The
 claim: a short domain-descriptive string prepended to each document or chunk
 before indexing pulls its embedding into a tighter, domain-coherent cluster.
-Measured effect: +3–8% Hit@5, −49% failed retrievals (contextual retrieval),
+Measured effect: +3-8% Hit@5, -49% failed retrievals (contextual retrieval),
 deployed across 400+ tenants and 18 languages.
 
 **Important honesty note:** a text prefix is a soft pull, not a hard filter.
 It improves ranking; it does not isolate tenants. If you need hard
 boundaries, that is vector-DB namespacing (Pinecone namespaces, Weaviate
-multi-tenancy) — a different feature with a similar name. Use both together
+multi-tenancy), a different feature with a similar name. Use both together
 when you need both.
 
 ## The prefix shape
@@ -26,14 +26,14 @@ when you need both.
 Domain first, artifact type second, entity last. Three to twelve words. The
 prefix describes the document's *place in the corpus*, not a summary of it.
 Applied to the chunk text before embedding **and** before building the
-lexical (BM25) index — contextual retrieval shows both benefit.
+lexical (BM25) index; contextual retrieval shows both benefit.
 
 ## Tiered discovery
 
 Use the highest tier available:
 
-1. **Model-generated (preferred).** Sample the corpus — a few hundred docs or
-   one per cluster — and draft 3 to 5 candidate prefixes per cluster. A human
+1. **Model-generated (preferred).** Sample the corpus, a few hundred docs or
+   one per cluster, and draft 3 to 5 candidate prefixes per cluster. A human
    reviews and locks the final set. Use prompt caching when generating at
    scale: the corpus slice is stable context.
 2. **Expert curation.** When data policy forbids sending samples to a model,
@@ -46,7 +46,7 @@ Never ship a prefix set to a production index that no human has read.
 ## Lint rules
 
 - **Vague prefixes cluster nothing.** `document:`, `file:`, `misc:`,
-  `note:` — banned. If the prefix fits any doc in the corpus it fits none.
+  `note:`: banned. If the prefix fits any doc in the corpus it fits none.
 - **Overspecific prefixes splinter.** A prefix matching five docs in ten
   thousand is a label, not a namespace. Merge up a level.
 - **Consistency beats cleverness.** Same domain, same words, same order,
@@ -65,7 +65,7 @@ Before rolling out, run the cheap A/B:
    and Hit@k on any labeled queries you have.
 3. Record both numbers in `.prefixer/metrics.jsonl`.
 
-If cohesion doesn't move, the prefixes are wrong — usually too vague — not
+If cohesion doesn't move, the prefixes are wrong, usually too vague, not
 the method.
 
 ## When inside a repo

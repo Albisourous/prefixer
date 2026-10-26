@@ -40,10 +40,10 @@ esac
 cd "$root" || exit 1
 rb="$(mktemp)"; sb="$(mktemp)"; trap 'rm -f "$rb" "$sb"' EXIT
 
-# baseline — what an unscoped-but-sane agent pays: repo-wide grep minus
-# the generated dirs every map excludes anyway (a grep through
-# node_modules measures a strawman, not the counterfactual). Case-
-# sensitive: probes are the namespaces' own names, not fuzzy queries.
+# baseline — what an unscoped-but-sane agent pays on a repo without
+# prefixer: a repo-wide grep minus generated dirs and .prefixer itself
+# (the map and metrics log would self-hit their own names and patterns).
+# Case-sensitive: probes are the namespaces' own names, not fuzzy queries.
 excl="$(grep_excludes)"
 grep -rnI $excl -- "$pat" . > "$rb" 2>/dev/null || true
 
@@ -60,7 +60,7 @@ while IFS= read -r f; do
   have=1
   rest="$f" ex=0
   while :; do
-    skipped_grep "${rest%%/*}" && { ex=1; break; }
+    skipped_gen "${rest%%/*}" && { ex=1; break; }
     case "$rest" in */*) rest="${rest#*/}" ;; *) break ;; esac
   done
   [ "$ex" -eq 0 ] && { allx=0; break; }

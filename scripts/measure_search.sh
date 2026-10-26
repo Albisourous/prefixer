@@ -36,7 +36,7 @@ errf="$(mktemp)"; trap 'rm -f "$errf"' EXIT
 out="$("$@" 2>"$errf")"; rc=$?
 if [ "$rc" -ne 0 ]; then
   sed 's/^/probe stderr: /' "$errf" >&2
-  echo "warn probe exited $rc — logging error:true, hits are unreliable" >&2
+  echo "warn probe exited $rc; logging error:true, hits are unreliable" >&2
 fi
 hits="$(printf '%s' "$out" | grep -c . || true)"
 bytes="$(printf '%s' "$out" | wc -c | tr -d ' ')"
@@ -47,9 +47,11 @@ if [ -z "$scope" ]; then
   for a in "$@"; do
     case "$a" in -*) continue ;; esac
     if [ "$a" = "." ] || [ "$a" = "./" ]; then continue; fi
-    if [ -e "$a" ] || printf '%s' "$a" | grep -q '[*?]'; then
-      scope="${scope:+$scope,}$a"
-    fi
+    if [ -e "$a" ]; then scope="${scope:+$scope,}$a"; continue; fi
+    # glob chars only count toward a scope when the arg is path-like —
+    # a bare foo.* is a grep regex, not a file pattern (issue: regex
+    # patterns were being logged as scopes)
+    case "$a" in */*[*?]*|*[*?]*/*) scope="${scope:+$scope,}$a" ;; esac
   done
   [ -z "$scope" ] && scope="root"
 fi

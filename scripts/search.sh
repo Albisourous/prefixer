@@ -60,16 +60,19 @@ pat="${2:-}"
 matches="$(scope_pairs "$map" | awk -F'\t' -v n="$ns" \
   '$1 == n || $2 == n { print $1 "\t" $3 }')"
 case "$(printf '%s' "$matches" | grep -c .)" in
-  0) echo "no namespace '${ns}:' in $map — tags:" >&2
+  0) echo "no namespace '${ns}:' in $map; tags:" >&2
      scope_pairs "$map" | awk -F'\t' '{ printf "  %s:\n", $1 }' >&2
      exit 2 ;;
   *) if [ "$(printf '%s' "$matches" | grep -c .)" -gt 1 ] &&
         ! printf '%s' "$matches" | awk -F'\t' -v n="$ns" '$1 == n' | grep -q .; then
-       echo "'${ns}:' is ambiguous — qualify it:" >&2
+       echo "'${ns}:' is ambiguous; qualify it:" >&2
        printf '%s' "$matches" | awk -F'\t' '{ printf "  %s: -> %s\n", $1, $3 }' >&2
        exit 2
      fi ;;
 esac
+# an exact composed-tag match wins over leaf matches under other parents
+exact="$(printf '%s' "$matches" | awk -F'\t' -v n="$ns" '$1 == n')"
+[ -n "$exact" ] && matches="$exact"
 scope="$(printf '%s' "$matches" | head -1 | cut -f2)"
 tag="$(printf '%s' "$matches" | head -1 | cut -f1)"
 
@@ -89,10 +92,14 @@ esac
 
 [ -n "$pat" ] || { echo "usage: search.sh <ns> <pattern>  (or --scope/--paths/--list)" >&2; exit 2; }
 
-# scoped pass — the namespace's globs to files, one grep over the list
+# scoped pass — the namespace's globs to files, one grep over the list.
+# an empty file list must not reach xargs: grep with no file operands
+# would read stdin and can hang an interactive caller
 run_scoped() { # scope → hits on stdout
-  local f
-  scope_files "$1" | tr '\n' '\0' | xargs -0 grep -nIH $ign -- "$pat" 2>/dev/null
+  local files
+  files="$(scope_files "$1")"
+  [ -n "$files" ] || return 0
+  printf '%s' "$files" | tr '\n' '\0' | xargs -0 grep -nIH $ign -- "$pat" 2>/dev/null
 }
 hits="$(run_scoped "$scope")"
 
@@ -111,10 +118,10 @@ else
       fi
     fi
     if [ -z "$hits" ]; then
-      # .prefixer is excluded here (unlike the eval baseline): the log
-      # echoes every searched pattern, so a real widened search would
-      # self-hit its own telemetry
-      excl="$(grep_excludes) --exclude-dir=.prefixer"
+      # .prefixer is inside the shared exclude list: the log echoes
+      # every searched pattern, so a widened search would self-hit its
+      # own telemetry
+      excl="$(grep_excludes)"
       hits="$(grep -rnIH $excl $ign -- "$pat" . 2>/dev/null | sed 's|^\./||')"
       [ -n "$hits" ] && { found_in="root"; level=""; }
     fi
@@ -142,11 +149,11 @@ first=true
 if [ "$found_in" = "$tag" ]; then
   echo "searched ${tag}: → $n hits (~$est tokens)" >&2
 elif [ -n "$found_in" ]; then
-  echo "miss in ${tag}: — widened to $found_in → $n hits (~$est tokens)" >&2
-  [ -n "$hit_dirs" ] && echo "hits landed under: $hit_dirs — possible map gap" >&2
+  echo "miss in ${tag}:, widened to $found_in → $n hits (~$est tokens)" >&2
+  [ -n "$hit_dirs" ] && echo "hits landed under: $hit_dirs, possible map gap" >&2
 else
   msg="miss in ${tag}:"
-  [ "$widen" -eq 1 ] && msg="$msg — none repo-wide either"
+  [ "$widen" -eq 1 ] && msg="$msg, none repo-wide either"
   echo "$msg (~$est tokens)" >&2
 fi
 

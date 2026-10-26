@@ -136,14 +136,24 @@ desc_for() { # dirname, dirpath
     if [ -n "$line" ]; then printf '%s' "$line"; return; fi
   done
   # representative files: name-sharing first (auth/AuthService.ts speaks
-  # for auth/), then the rest — deterministic order for a stable map
+  # for auth/), then the rest — deterministic order for a stable map.
+  # line-wise reads throughout: a spaced path must stay one filename
   list="$(find "$2" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -not -name '*.min.*' -print 2>/dev/null | sort | head -60)"
   pref="$(printf '%s\n' "$list" | grep -iF -- "$1" 2>/dev/null | head -6)"
-  for f in $pref $(printf '%s\n' "$list" | grep -ivF -- "$1" 2>/dev/null | head -6); do
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
     sample="$(doc_line "$f" | cut -c1-72)"
     if [ -n "$sample" ]; then printf '%s' "$sample"; return; fi
-  done
-  symtext="$(syms $(printf '%s\n' $pref $list | head -8) 2>/dev/null | head -1)"
+  done <<EOF
+$(printf '%s\n' "$pref"; printf '%s\n' "$list" | grep -ivF -- "$1" 2>/dev/null | head -6)
+EOF
+  sfiles=()
+  while IFS= read -r f; do [ -n "$f" ] && sfiles+=("$f"); done <<EOF
+$(printf '%s\n' "$pref" "$list" | awk 'NF' | awk '!seen[$0]++')
+EOF
+  symtext=""
+  [ "${#sfiles[@]}" -gt 0 ] &&
+    symtext="$(syms "${sfiles[@]:0:8}" 2>/dev/null | head -1)"
   if [ -n "$symtext" ]; then printf 'exports %s' "$symtext"; return; fi
   names="$(printf '%s\n' "$list" | head -60 | sed 's|.*/||; s/\.[^.]*$//' |
     sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
@@ -151,14 +161,19 @@ desc_for() { # dirname, dirpath
   printf 'undocumented: what lives here'
 }
 
+# newline lists matched literally — a case-glob test would let the * and
+# ** inside a stored scope match other entries and silently drop rows
+listed() { printf '%s' "$1" | grep -Fxq -- "$2"; }
+
 seen="" used_pfx="" last_pfx=""
 emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
   local name="$1" scope="$2" path="$3" parent="$4" indent="$5" p names
   shift 5
   # scopes repeat across parents — dedupe by scope, not name
-  case " $seen " in *" $scope "*) return ;; esac
+  listed "$seen" "$scope" && return
   has_files "$path" || return 0
-  seen="$seen $scope"
+  seen="$seen$scope
+"
   rows=$((rows + 1))
   p="$(pfx "$name" "$path" "$@")"
   p="${p// /-}"   # prefixes are tags, not display names — no spaces
@@ -169,21 +184,22 @@ emit() { # dirname, scope, dirpath, parent-prefix, indent, sibling-names...
   # display — qualify it with its parent dir (plugins/claude-api →
   # plugins-claude-api) rather than emitting a draft todo- prefix
   key="${parent:-top}:$p"
-  case " $used_pfx " in *" $key "*)
+  if listed "$used_pfx" "$key"; then
     stem="${scope%/\*\*}"
     case "$stem" in
       */*) p="${stem%%/*}-$name" ;;
       *)   p="$stem" ;;
-    esac ;;
-  esac
-  case " $used_pfx " in *" ${parent:-top}:$p "*) p="todo-$name" ;; esac
-  used_pfx="$used_pfx ${parent:-top}:$p"
+    esac
+  fi
+  listed "$used_pfx" "${parent:-top}:$p" && p="todo-$name"
+  used_pfx="$used_pfx${parent:-top}:$p
+"
   last_pfx="$p"
   if is_binary_dir "$path"; then
     names="$(find "$path" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print 2>/dev/null | head -40 |
       sed 's|.*/||; s/\.[^.]*$//' | sort -u | head -3 | paste -sd, - |
       sed 's/,/, /g' | tr -d '|\r')"
-    printf '| %s%s: | %s | names only — binary assets: %s |\n' "$indent" "$p" "$scope" "${names:-files}"
+    printf '| %s%s: | %s | names only, binary assets: %s |\n' "$indent" "$p" "$scope" "${names:-files}"
     return
   fi
   # contains goes into a table cell — pipes make phantom cells, CRs make
@@ -216,7 +232,12 @@ done
 jumbos=""
 cand="$(find "$root" -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null |
   grep -vE '/(dist|build|target|coverage|out|__pycache__|venv|bin|obj|storybook-static|DerivedData|Pods)/|/[^/]+-out/' |
-  grep -vEi '\.(lock|sum|txt|json|jsonc|ya?ml|toml|csv|tsv|xml|html?|css|svg|map|snap|out|log|diff|patch|bin|dat|db|sqlite|ico|png|jpe?g|gif|webp|woff2?|ttf|eot|pdf|zip|gz|tar)$|(__snapshots__|/snapshots?/|/baselines?/|/fixtures?/|\.baseline|reallylarge)' || true)"
+  grep -vEi '\.(lock|sum|txt|json|jsonc|ya?ml|toml|csv|tsv|xml|html?|css|svg|map|snap|out|log|diff|patch|bin|dat|db|sqlite|ico|png|jpe?g|gif|webp|woff2?|ttf|eot|pdf|zip|gz|tar)$|\.min\.[^.]+$|(__snapshots__|/snapshots?/|/baselines?/|/fixtures?/|\.baseline)' || true)"
+# the extension list can't name every binary — a .wasm or atlas full of
+# 0x0A bytes fakes a huge line count; grep -I keeps candidates to text
+if [ -n "$cand" ]; then
+  cand="$(printf '%s\n' "$cand" | tr '\n' '\0' | xargs -0 grep -lI '' 2>/dev/null || true)"
+fi
 if [ -n "$cand" ]; then
   jumbos="$(printf '%s\n' "$cand" | tr '\n' '\0' | xargs -0 wc -l 2>/dev/null | sort -rn |
     awk '$2 != "total" && $1 > 3000 { c=$1; $1=""; sub(/^ +/,""); print c "\t" $0 }')" || true
@@ -249,14 +270,6 @@ dir_budget=$((max_rows - reserve))
     skipped_gen "$name" && continue
     topnames+=("$name")
   done
-  unmapped=""
-  for name in ${topnames[@]+"${topnames[@]}"}; do
-    if [ "$rows" -ge "$dir_budget" ]; then
-      unmapped="${unmapped:+$unmapped, }$name"; continue
-    fi
-    emit "${name#.}" "$name/**" "$root/$name" "" "" ${topnames[@]+"${topnames[@]}"}
-  done
-
   # descend into dirs that hold most of a repo's code, then one level
   # deeper where a child holds sub-teams (payments → checkout, refunds).
   # parents: the usual code homes, the project-named dir (django/django),
@@ -274,36 +287,97 @@ dir_budget=$((max_rows - reserve))
     done
     [ "$kc" -ge 3 ] && parents="$parents $name"
   done
+
+  # children of code-bearing parents get a guaranteed share of the row
+  # budget — a top-dirs-only pass starved exactly the split a searcher
+  # needs most (src/core losing its row to .playwright-cli). Parents go
+  # biggest-first so the dir holding most code subdivides first;
+  # round-robin across parents keeps one fat parent from taking every
+  # child slot.
+  kids_of() { # dir — eligible child dir names, one per line
+    local d
+    for d in "$root/$1"/*/; do
+      [ -d "$d" ] || continue
+      skipped_gen "$(basename "$d")" && continue
+      basename "$d"
+    done
+  }
+  nkids=0 plist=""
   for parent in $parents; do
     [ -d "$root/$parent" ] || continue
-    kids=()
-    for d in "$root/$parent"/*/; do
-      [ -d "$d" ] || continue
-      child="$(basename "$d")"
-      skipped_gen "$child" && continue
-      kids+=("$child")
-    done
-    for child in ${kids[@]+"${kids[@]}"}; do
-      if [ "$rows" -ge "$dir_budget" ]; then
-        unmapped="${unmapped:+$unmapped, }$parent/$child"; continue
-      fi
+    plist="$plist$(find "$root/$parent" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print 2>/dev/null | grep -c .) $parent
+"
+    while IFS= read -r kn; do
+      [ -n "$kn" ] && has_files "$root/$parent/$kn" && nkids=$((nkids+1))
+    done <<< "$(kids_of "$parent")"
+  done
+  child_budget=$((dir_budget / 2))
+  [ "$child_budget" -gt "$nkids" ] && child_budget=$nkids
+  top_budget=$((dir_budget - child_budget))
+
+  # top dirs that miss their share are decided after the child pass —
+  # a child row covers part of the dir, so "unmapped" would lie
+  unmapped="" tdefer=""
+  for name in ${topnames[@]+"${topnames[@]}"}; do
+    if [ "$rows" -ge "$top_budget" ]; then
+      tdefer="$tdefer$name
+"; continue
+    fi
+    emit "${name#.}" "$name/**" "$root/$name" "" "" ${topnames[@]+"${topnames[@]}"}
+  done
+
+  psorted="$(printf '%s' "$plist" | sort -rn | sed 's/^[0-9]* //')"
+  while [ "$rows" -lt "$dir_budget" ]; do
+    progress=0
+    for parent in $psorted; do
+      [ "$rows" -ge "$dir_budget" ] && break
+      kids=()
+      while IFS= read -r kn; do [ -n "$kn" ] && kids+=("$kn"); done <<< "$(kids_of "$parent")"
+      child=""
+      for kn in ${kids[@]+"${kids[@]}"}; do
+        listed "$seen" "$parent/$kn/**" && continue
+        has_files "$root/$parent/$kn" || continue
+        child="$kn"; break
+      done
+      [ -n "$child" ] || continue
       emit "$child" "$parent/$child/**" "$root/$parent/$child" "" "" ${kids[@]+"${kids[@]}"}
+      progress=1
       cp="$last_pfx"
       gkids=()
-      for d in "$root/$parent/$child"/*/; do
-        [ -d "$d" ] || continue
-        g="$(basename "$d")"
-        skipped_gen "$g" && continue
-        gkids+=("$g")
-      done
+      while IFS= read -r gn; do [ -n "$gn" ] && gkids+=("$gn"); done <<< "$(kids_of "$parent/$child")"
       [ "${#gkids[@]}" -ge 2 ] || continue
       for g in ${gkids[@]+"${gkids[@]}"}; do
-        if [ "$rows" -ge "$dir_budget" ]; then
-          unmapped="${unmapped:+$unmapped, }$parent/$child/$g"; continue
-        fi
+        [ "$rows" -ge "$dir_budget" ] && break
         emit "$g" "$parent/$child/$g/**" "$root/$parent/$child/$g" "$cp" "  " ${gkids[@]+"${gkids[@]}"}
       done
     done
+    [ "$progress" -eq 0 ] && break
+  done
+
+  # eligible rows the budget skipped get named, never silently dropped —
+  # a lone gkid never earns a row, so only 2+-gkid children list theirs.
+  # a dir whose descendants earned rows is covered, not unmapped
+  nl='
+'
+  mark_unmapped() { # scope path relative to root
+    listed "$seen" "$1/**" && return 0
+    case "$seen" in "$1/"* | *"$nl$1/"*) return 0 ;; esac
+    has_files "$root/$1" || return 0
+    unmapped="${unmapped:+$unmapped, }$1"
+  }
+  while IFS= read -r name; do
+    [ -n "$name" ] && mark_unmapped "$name"
+  done <<< "$tdefer"
+  for parent in $psorted; do
+    while IFS= read -r kn; do
+      [ -n "$kn" ] || continue
+      mark_unmapped "$parent/$kn"
+      [ "$(kids_of "$parent/$kn" | grep -c .)" -lt 2 ] && continue
+      while IFS= read -r gn; do
+        [ -n "$gn" ] || continue
+        mark_unmapped "$parent/$kn/$gn"
+      done <<< "$(kids_of "$parent/$kn")"
+    done <<< "$(kids_of "$parent")"
   done
 
   # files at repo root are a distinct intent: config, manifests, docs —
@@ -319,8 +393,9 @@ dir_budget=$((max_rows - reserve))
       rscope="${rscope:+$rscope, }$rel"
     done <<< "$rf"
     [ "$alldoc" -eq 1 ] && rp="doc" || rp="cfg"
-    case " $used_pfx " in *" top:$rp "*) rp="todo-$rp" ;; esac
-    used_pfx="$used_pfx top:$rp"
+    listed "$used_pfx" "top:$rp" && rp="todo-$rp"
+    used_pfx="$used_pfx
+top:$rp"
     if [ -n "$rscope" ]; then
       rows=$((rows + 1))
       if [ "$alldoc" -eq 1 ]; then
@@ -340,8 +415,9 @@ dir_budget=$((max_rows - reserve))
       rel="${jf#"$root"/}"
       stem="$(basename "$jf")"; stem="$(printf '%s' "${stem%.*}" | tr 'A-Z' 'a-z')"
       jp="$(pfx "$stem" "$jf" || true)"; [ -n "$jp" ] || jp="file"
-      case " $used_pfx " in *" top:$jp "*) continue ;; esac
-      used_pfx="$used_pfx top:$jp"
+      listed "$used_pfx" "top:$jp" && continue
+      used_pfx="$used_pfx
+top:$jp"
       marks="$(grep -nE '^[[:space:]]*((export|async|pub|local|static|final|private|public)[[:space:]]+)*(function|class|interface|struct|impl|func|def|fn)[[:space:]]+[A-Za-z_]' "$jf" 2>/dev/null |
         sed -nE 's/^([0-9]+):.*(function|class|interface|struct|impl|func|def|fn)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\3@\1/p' |
         head -5 | paste -sd, - | sed 's/,/, /g')" || true
@@ -352,10 +428,19 @@ dir_budget=$((max_rows - reserve))
     done <<< "$jumbos"
   fi
 
-  # well-known entry files are a distinct search intent
+  # well-known entry files are a distinct search intent — dedupe the tag
+  # like the cfg row does: a real boot/ dir claims boot: first, entry: is
+  # the fallback, and only a double collision stays a draft
   if [ -n "$entries" ]; then
+    bp=""
+    for cand in boot entry; do
+      listed "$used_pfx" "top:$cand" || { bp="$cand"; break; }
+    done
+    [ -n "$bp" ] || bp="todo-boot"
+    used_pfx="$used_pfx
+top:$bp"
     rows=$((rows + 1))
-    echo "| boot: | $entries | entry points, boot wiring |"
+    echo "| $bp: | $entries | entry points, boot wiring |"
   fi
 } > "$out"
 
@@ -363,8 +448,8 @@ dir_budget=$((max_rows - reserve))
 # complete map and hides the draft work a human still owes
 if [ -n "$unmapped" ]; then
   echo >> "$out"
-  echo "unmapped: $unmapped (capped at $max_rows rows — raise the cap or fold into a parent scope)" >> "$out"
-  echo "note: capped at $max_rows rows — unmapped dirs: $unmapped" >&2
+  echo "unmapped: $unmapped (capped at $max_rows rows: raise the cap or fold into a parent scope)" >> "$out"
+  echo "note: capped at $max_rows rows; unmapped dirs: $unmapped" >&2
 fi
 
 drafts=$(grep -cE 'todo-|undocumented' "$out" || true)

@@ -39,7 +39,7 @@ while IFS= read -r line; do
   lvl=${#indent}
 
   case "$name" in todo-*) fail "draft prefix: ${name}:" ;; esac
-  case "$cont" in *TODO*|*undocumented*) fail "draft contains on ${name}: — $cont" ;; esac
+  case "$cont" in *TODO*|*undocumented*) fail "draft contains on ${name}: $cont" ;; esac
 
   # full tag = ancestor chain + name; rows arrive depth-first so the last
   # row at any shallower level is this row's parent
@@ -64,13 +64,16 @@ while IFS= read -r line; do
   live=0 genflag=0
   while IFS= read -r tok; do
     [ -z "$tok" ] && continue
-    case "$tok" in
-      node_modules/*|node_modules|vendor/*|dist/*|build/*|target/*|coverage/*|*-out/*|*-out|.work|.work/*|*/.work|*/.work/*)
-        genflag=1 ;;
-    esac
+    # any component on the shared generated-dir list flags the row —
+    # one list (PREFIXER_SKIP) keeps lint, scaffold, and eval honest
+    rest="$tok"
+    while :; do
+      skipped_gen "${rest%%/*}" && { genflag=1; break; }
+      case "$rest" in */*) rest="${rest#*/}" ;; *) break ;; esac
+    done
     resolve "$tok" && live=$((live+1))
   done <<< "$(expand_scope "$scope")"
-  [ "$genflag" -eq 1 ] && fail "generated path mapped: ${tag}: — never map vendored/generated"
+  [ "$genflag" -eq 1 ] && fail "generated path mapped: ${tag}: never map vendored/generated"
   [ "$live" -eq 0 ] && fail "dead scope: ${tag}: → $scope"
 done < "$map"
 

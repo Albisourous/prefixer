@@ -37,12 +37,12 @@ while read -r repo shape _; do
   mark="ok"; [ "${warns:-0}" -gt 0 ] && mark="warn"; [ "${fails:-1}" -gt 0 ] && mark="FAIL"
   if [ -n "$stats" ]; then
     set -- $stats
-    rows="$rows| [$repo](https://github.com/$repo) | $shape | $1 | $2% | $3–$4% | $mark |
+    rows="$rows| [$repo](https://github.com/$repo) | $shape | $1 | $2% | $3-$4% | $mark |
 "
     tot=$((tot + $2)); n=$((n + 1))
     echo "  $repo: $1 namespaces, mean $2%, lint $mark" >&2
   else
-    rows="$rows| [$repo](https://github.com/$repo) | $shape | – | – | – | $mark |
+    rows="$rows| [$repo](https://github.com/$repo) | $shape | - | - | - | $mark |
 "
     echo "  $repo: no evaluable rows, lint $mark" >&2
   fi
@@ -52,10 +52,10 @@ done < "$here/repos.txt"
   echo "# Eval corpus"
   echo
   echo "\`eval/run.sh\` shallow-clones each repo in \`repos.txt\`, scaffolds a"
-  echo "map, lints it, and probes every namespace with \`eval_repo.sh\` — each"
+  echo "map, lints it, and probes every namespace with \`eval_repo.sh\`: each"
   echo "row's own name as the grep pattern, nothing configured per repo."
   echo "Rows whose name never appears in their files report \`n/a\` and are"
-  echo "excluded — a 0-hit probe can't prove savings."
+  echo "excluded; a 0-hit probe can't prove savings."
   echo "Regenerated weekly by \`.github/workflows/eval.yml\`."
   echo
   echo "| repo | shape | namespaces | mean saved | range | lint |"

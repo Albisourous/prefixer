@@ -6,7 +6,7 @@
 
 An agent skill for scoped codebase search. It gives agents a small
 namespace map so searches stay in the right part of the tree, which means
-fewer tokens spent on irrelevant hits — **79% of search-output bytes
+fewer tokens spent on irrelevant hits: **79% of search-output bytes
 saved, measured across 18 public repos.** Works with Devin, Claude Code,
 Codex, Cursor, and other agents that read skills. `references/` also ships
 playbooks for index-time doc prefixes and prompt-cache ordering.
@@ -28,7 +28,7 @@ bash .agents/skills/prefixer/scripts/install_hook.sh      # optional: inject the
 ```
 
 Every agent session then reads `.prefixer/namespaces.md` and searches
-scoped — or runs `search.sh <ns> <pattern>`, which resolves the tag,
+scoped, or runs `search.sh <ns> <pattern>`, which resolves the tag,
 searches, widens on a miss, and logs the delta itself. Other install
 paths (auto-detect installer, Claude marketplace, Devin) in
 [Install](#install) below.
@@ -65,11 +65,11 @@ read src/auth/session.ts:40-58          → found
 ≈ 3 tool calls, a fraction of the tokens, answer found first try
 ```
 
-**Measured on public repos** — including the skill repos agents install
+**Measured on public repos**, including the skill repos agents install
 most. `eval_repo.sh` lints a map, then probes every namespace with the
 same grep at repo root and inside the namespace's globs. `eval/run.sh`
-does that weekly over an 18-repo corpus and commits the table — the claim
-stays honest as the scaffold changes:
+does that weekly over an 18-repo corpus and commits the table, so the
+claim stays honest as the scaffold changes:
 
 <img src="assets/eval-chart.svg" alt="Measured mean search bytes saved per repo across 18 public repos, 53 to 92%" width="720">
 
@@ -85,7 +85,7 @@ stays honest as the scaffold changes:
 
 The corpus runs on the skill repos agents actually install, plus cli/cli,
 ponytail, ripgrep, shadcn-ui/ui, express, rust-lang/book, and requests.
-A namespace whose own name never appears in its files reports `n/a` —
+A namespace whose own name never appears in its files reports `n/a`;
 the mean only counts measurable probes. Full table (per-repo ranges,
 lint status) in
 [eval/RESULTS.md](eval/RESULTS.md), refreshed weekly by CI.
@@ -94,7 +94,7 @@ lint status) in
 
 **Behavior, not just bytes:** `eval/agent/run.sh` runs a fixed task suite
 through a real agent CLI (Devin or Claude Code), once with the map
-injected and once without, logging every tool call through a hook —
+injected and once without, logging every tool call through a hook:
 searches, output bytes, first-try-scoped rate, answer correctness.
 Synthetic fixture, identical prompts, `--reps` for distributions. See
 [eval/agent/](eval/agent/README.md).
@@ -110,7 +110,7 @@ Synthetic fixture, identical prompts, `--reps` for distributions. See
 - want the before/after **measured**. `metrics.jsonl` tracking is built in
 
 The design leans on published results: index-time prefix injection
-(ACL 2026, +3-8% Hit@5), contextual retrieval (−49% retrieval failures),
+(ACL 2026, +3-8% Hit@5), contextual retrieval (-49% retrieval failures),
 and prompt caching (byte-exact prefix reuse, 8-60× faster TTFT). The
 tracking loop means gains get measured instead of assumed.
 
@@ -123,7 +123,7 @@ build plan.
 
 ## Install
 
-**Auto-detect installer** — detects your agent from marker dirs
+**Auto-detect installer**: detects your agent from marker dirs
 (`.claude`, `.devin`, `.agents`) and installs the skill there:
 
 ```bash
@@ -208,12 +208,12 @@ agents/openai.yaml        OpenAI-compatible agent display data
    codebase's own vocabulary, never a hardcoded wordlist. Each map carries a
    `repo:` qualifier so prefixes stay unique across many codebases, and
    rows can nest for sub-teams (`payments:checkout:`).
-2. **Searches scoped first** — mechanically, not by discipline:
+2. **Searches scoped first**, mechanically, not by discipline:
    `search.sh <ns> <pattern>` resolves the tag, greps inside it, widens one
    level on a miss, and logs the line. `install_hook.sh` injects the map at
    session start so the discipline needs no remembering.
 3. **Measures the delta and closes the loop**: baseline first, log per
-   task, report savings — then `suggest_map.sh` reads the log and proposes
+   task, report savings. Then `suggest_map.sh` reads the log and proposes
    the rows real searches asked for. `eval_repo.sh` produces the
    bytes-saved number; `visualize.py` renders the map, coverage, and
    savings as an interactive HTML report; a CI template in `integrations/`
@@ -231,17 +231,17 @@ agents/openai.yaml        OpenAI-compatible agent display data
 ## Not to be confused with
 
 - **Knowledge-graph skills** ([Graphify](https://github.com/Graphify-Labs/graphify)):
-  build a persistent, queryable graph of your codebase — the right tool
+  build a persistent, queryable graph of your codebase, the right tool
   for "how does X connect to Y" and architecture onboarding. Prefixer
-  answers a smaller question — "which directory should this search hit
-  first" — with a 12-line file, no install, no pipeline. They stack:
+  answers a smaller question ("which directory should this search hit
+  first") with a 12-line file, no install, no pipeline. They stack:
   graphify for understanding, prefixer to keep everyday greps cheap (81%
   of search bytes saved on graphify's own repo). Full comparison, plus
   the packaging patterns worth borrowing from graphify's repo:
   [docs/vs-graphify.md](docs/vs-graphify.md).
 - **Skills packs** (superpowers, mattpocock/skills, anthropics/skills,
   agent-skills): bundles of many skills covering many workflows. Prefixer
-  is one skill doing one job — install it alongside a pack, not instead
+  is one skill doing one job; install it alongside a pack, not instead
   of one.
 - **Prefix-tuning** (Li & Liang, ACL 2021): trains soft prompt vectors.
   Prefixer uses plain-text conventions: auditable, cacheable, no training.

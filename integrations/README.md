@@ -1,11 +1,11 @@
-# integrations — wire the map into the places discipline gets skipped
+# integrations: wire the map into the places discipline gets skipped
 
 Small drop-in files for making the namespace map automatic. Nothing here
 is required; each one removes a place the skill relied on remembering.
 
 ## Session-start injection (`hooks.*.json`)
 
-The skill's weakest step is "read the map once per session" — it depends
+The skill's weakest step is "read the map once per session"; it depends
 on the agent remembering. These snippets put the map in session context
 at start, so every search begins scoped with no discipline required.
 

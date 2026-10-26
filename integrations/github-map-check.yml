@@ -2,7 +2,7 @@
 # .prefixer/namespaces.md. Fails the PR when a row's globs resolve to
 # nothing, tags collide, a draft row ships, or a generated dir gets
 # mapped. Warnings (uncovered dirs, no repo: header) print but do not
-# fail — the map is allowed to lag a little, not to lie.
+# fail: the map is allowed to lag a little, not to lie.
 name: prefixer-map
 on:
   pull_request:
@@ -18,8 +18,8 @@ jobs:
       - name: Lint the namespace map
         run: |
           set -e
-          test -f .prefixer/namespaces.md || { echo "no map — nothing to check"; exit 0; }
-          # prefer a vendored skill copy — the check scripts ship inside it
+          test -f .prefixer/namespaces.md || { echo "no map; nothing to check"; exit 0; }
+          # prefer a vendored skill copy; the check scripts ship inside it
           for d in .agents .devin .claude; do
             s="$d/skills/prefixer/scripts/check_namespaces.sh"
             if [ -f "$s" ]; then bash "$s" .; exit $?; fi

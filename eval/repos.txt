@@ -1,4 +1,4 @@
-# Public repos the corpus evals — different shapes on purpose.
+# Public repos the corpus evals, different shapes on purpose.
 # Format: owner/repo <shape>   (# comments ignored)
 obra/superpowers        skills-pack
 mattpocock/skills       skills-pack

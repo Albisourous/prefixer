@@ -344,7 +344,7 @@ printf 'x\0y\0z' > "$binrepo/public/sprites/atlas.png"
 printf '\0\1\2\3' > "$binrepo/public/sprites/sheet.webp"
 echo "code here" > "$binrepo/src/a.ts"
 bash "$here/init_namespaces.sh" "$binrepo" >/dev/null 2>&1
-check "binary dir marked names-only" 'names only — binary assets' "$binrepo/.prefixer/namespaces.md"
+check "binary dir marked names-only" 'names only, binary assets' "$binrepo/.prefixer/namespaces.md"
 
 # --- an unbalanced '{' in a scope must not hang the linter
 # (issue #24 — the brace expander recursed forever) ---
@@ -658,6 +658,158 @@ out="$(cd "$gx" && bash "$here/eval_repo.sh" . 2>/dev/null)"
 case "$out" in
   *"baseline excludes"*) echo "ok   eval_repo marks excluded-scope rows n/a" ;;
   *) echo "FAIL eval_repo marks excluded-scope rows n/a"; fail=1 ;;
+esac
+
+# --- children of code dirs get a guaranteed budget share (issue #43:
+# a full top-dir pass starved src/* while .playwright-cli took a row) ---
+budg="$tmp/budget"; mkdir -p "$budg/src/core" "$budg/src/game"
+echo x > "$budg/src/core/e.ts"; echo x > "$budg/src/game/g.ts"
+for d in aa bb cc dd ee ff gg hh ii jj kk ll; do
+  mkdir -p "$budg/$d"; echo x > "$budg/$d/f.md"
+done
+bash "$here/init_namespaces.sh" "$budg" >/dev/null 2>&1
+bmap="$budg/.prefixer/namespaces.md"
+check "child rows survive a full top list" '| core: | src/core/\*\*' "$bmap"
+check "second child row survives"      '| game: | src/game/\*\*' "$bmap"
+check "budget loss still reported"     '^unmapped:' "$bmap"
+
+# --- hardcoded boot row dedupes against a real boot/ dir (issue #52) ---
+bootr="$tmp/bootrepo"; mkdir -p "$bootr/boot" "$bootr/src"
+echo x > "$bootr/boot/x.ts"; echo 'int main(){}' > "$bootr/src/main.ts"
+bash "$here/init_namespaces.sh" "$bootr" >/dev/null 2>&1
+bootmap="$bootr/.prefixer/namespaces.md"
+check "boot dir keeps its tag"      '| boot: | boot/\*\*' "$bootmap"
+check "entry row falls back"        '| entry: | src/main.ts' "$bootmap"
+bash "$here/check_namespaces.sh" "$bootr" >/dev/null 2>&1 &&
+  echo "ok   boot fallback map lints clean" || { echo "FAIL boot fallback map lints clean"; fail=1; }
+
+# --- jumbo detector ignores binaries and minified bundles (issue #44) --
+jb="$tmp/jumbo"; mkdir -p "$jb/src"
+{ for i in $(seq 1 3100); do printf 'chunk\0%d\n' "$i"; done; } > "$jb/src/blob.wasm"
+{ for i in $(seq 1 3100); do echo "x $i"; done; } > "$jb/src/bundle.min.js"
+echo x > "$jb/src/a.ts"
+bash "$here/init_namespaces.sh" "$jb" >/dev/null 2>&1
+nocheck "binary with newlines not jumbo" 'blob.wasm' "$jb/.prefixer/namespaces.md"
+nocheck "minified bundle not jumbo"      'bundle.min.js' "$jb/.prefixer/namespaces.md"
+
+# --- the eval baseline stays out of prefixer's own artifacts (issue #45:
+# the map and metrics log are guaranteed self-hits on every probe) ---
+pxb="$tmp/pxbase"; mkdir -p "$pxb/src" "$pxb/.prefixer"
+echo "mytoken" > "$pxb/src/a.ts"
+echo '{"pattern":"mytoken"}' > "$pxb/.prefixer/metrics.jsonl"
+cat > "$pxb/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: pxb
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/** | mytoken handlers |
+EOF
+out="$(cd "$pxb" && bash "$here/eval_scope.sh" . mytoken api 2>/dev/null)"
+case "$out" in
+  *'"root_hits":1'*) echo "ok   baseline excludes .prefixer artifacts" ;;
+  *) echo "FAIL baseline excludes .prefixer artifacts"; fail=1 ;;
+esac
+
+# --- measure_search: regex patterns are not scopes (issue #47) ---------
+( cd "$srch" && bash "$here/measure_search.sh" t-rx -- grep -rn 'sess.*on' src/auth ) >/dev/null 2>&1
+out="$(tail -1 "$srch/.prefixer/metrics.jsonl")"
+case "$out" in
+  *'"scope":"src/auth"'*) echo "ok   regex pattern not logged as scope" ;;
+  *) echo "FAIL regex pattern not logged as scope"; fail=1 ;;
+esac
+
+# --- install.sh: self-target is skipped, dev tools don't ship (#50) ----
+iskill="$tmp/home/.agents/skills/prefixer"
+mkdir -p "$iskill/scripts" "$iskill/references" "$tmp/iproj/.devin"
+cp SKILL.md SPEC.md "$iskill/" 2>/dev/null
+cp "$here/install.sh" "$here/test_scaffold.sh" "$iskill/scripts/"
+echo x > "$iskill/references/r.md"
+iout="$(cd "$tmp/iproj" && HOME="$tmp/home" bash "$iskill/scripts/install.sh" 2>&1)"
+case "$iout" in
+  *skipped*) echo "ok   self-target install skipped, not fatal" ;;
+  *) echo "FAIL self-target install skipped, not fatal"; fail=1 ;;
+esac
+[ -f "$tmp/iproj/.devin/skills/prefixer/SKILL.md" ] &&
+  echo "ok   other targets still install" || { echo "FAIL other targets still install"; fail=1; }
+[ -f "$tmp/iproj/.devin/skills/prefixer/scripts/test_scaffold.sh" ] &&
+  { echo "FAIL dev tools excluded from installs"; fail=1; } || echo "ok   dev tools excluded from installs"
+
+# --- report_metrics.sh reads the log back (issue #48) ------------------
+mrp="$tmp/mreport"; mkdir -p "$mrp/.prefixer"
+cat > "$mrp/.prefixer/metrics.jsonl" <<'EOF'
+{"ts":"2026-10-26T10:00:00Z","task":"scoped-search","ns":"auth","scope":"src/auth/**","searches":1,"hits":3,"est_tokens":120,"first_try_hit":true}
+{"ts":"2026-10-26T10:01:00Z","task":"probe","scope":"root","searches":1,"hits":9,"est_tokens":700,"baseline":true}
+{"ts":"2026-10-26T10:02:00Z","task":"t","scope":"root","searches":1,"hits":5,"est_tokens":900}
+EOF
+out="$(bash "$here/report_metrics.sh" "$mrp")"
+case "$out" in
+  *"first-try:"*"100%"*"src/auth/"*) echo "ok   report aggregates hit rate + scopes" ;;
+  *) echo "FAIL report aggregates hit rate + scopes"; fail=1 ;;
+esac
+case "$out" in
+  *"unscoped:"*1*) echo "ok   report counts unscoped searches" ;;
+  *) echo "FAIL report counts unscoped searches"; fail=1 ;;
+esac
+
+# --- search.sh: exact composed tag beats a same-named leaf elsewhere ---
+cq="$tmp/composed"; mkdir -p "$cq/orders/checkout" "$cq/payments/checkout" "$cq/.prefixer"
+echo 'needleX' > "$cq/orders/checkout/o.ts"; echo 'needleX' > "$cq/payments/checkout/p.ts"
+cat > "$cq/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: cq
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| payments: | payments/** | payments |
+|   checkout: | payments/checkout/** | payments checkout |
+| orders: | orders/** | orders |
+|   checkout: | orders/checkout/** | orders checkout |
+EOF
+out="$(cd "$cq" && bash "$here/search.sh" orders:checkout needleX 2>/dev/null)"
+case "$out" in
+  *orders/checkout/o.ts*|*'orders/checkout/o.ts:'*) echo "ok   composed tag wins over leaf match" ;;
+  *) echo "FAIL composed tag wins over leaf match: $out"; fail=1 ;;
+esac
+
+# --- search.sh: a scope resolving to no files must not read stdin ------
+dd="$tmp/deadscope"; mkdir -p "$dd/src" "$dd/.prefixer"
+echo 'needleY' > "$dd/src/a.ts"
+cat > "$dd/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: dd
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| dead: | nosuchdir/** | nothing there |
+| src: | src/** | sources |
+EOF
+out="$(printf 'needleY injected-stdin-hit\n' | (cd "$dd" && bash "$here/search.sh" --no-widen dead needleY 2>/dev/null) || true)"
+[ -z "$out" ] && echo "ok   dead scope cannot hit stdin" || { echo "FAIL dead scope cannot hit stdin: $out"; fail=1; }
+out="$(cd "$dd" && bash "$here/search.sh" dead needleY 2>/dev/null || true)"
+case "$out" in
+  *injected-stdin-hit*) echo "FAIL dead scope cannot hit stdin: $out"; fail=1 ;;
+  *src/a.ts*) echo "ok   dead scope widens to real files, not stdin" ;;
+  *) echo "FAIL dead scope widens to real files, not stdin: $out"; fail=1 ;;
+esac
+
+# --- check_namespaces: every PREFIXER_SKIP dir fails when mapped -------
+gd="$tmp/gendir"; mkdir -p "$gd/.next" "$gd/.venv" "$gd/.prefixer"
+echo x > "$gd/.next/n.js"; echo x > "$gd/.venv/v.py"
+cat > "$gd/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: gd
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| nxt: | .next/** | build output |
+| venv: | .venv/** | python env |
+EOF
+out="$(cd "$gd" && bash "$here/check_namespaces.sh" . 2>/dev/null || true)"
+case "$out" in
+  *"generated path mapped: nxt:"*"generated path mapped: venv:"*)
+    echo "ok   shared gen-dir list fails mapped rows" ;;
+  *) echo "FAIL shared gen-dir list fails mapped rows: $out"; fail=1 ;;
 esac
 
 # --- eval/agent harness mechanics (no agent CLI needed) -----------------

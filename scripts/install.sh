@@ -82,10 +82,21 @@ for p in $targets; do
   d="$(dest "$p" "$sc")"
   [ -n "$d" ] || continue
   mkdir -p "$d"
+  # a detected target can resolve to this checkout itself (the installed
+  # skill re-run from a marked project) — copying onto itself errors
+  # under set -e after earlier targets already landed
+  if [ "$(cd "$d" && pwd -P)" = "$(cd "$src" && pwd -P)" ]; then
+    installed="$installed  $d ($sc) skipped, already this checkout
+"
+    continue
+  fi
   cp "$src/SKILL.md" "$src/SPEC.md" "$d/"
   rm -rf "$d/references" "$d/scripts"
   cp -R "$src/references" "$d/references"
   cp -R "$src/scripts" "$d/scripts"
+  # repo-side dev tooling is not part of the skill
+  rm -rf "$d/scripts/__pycache__"
+  rm -f "$d/scripts/test_scaffold.sh" "$d/scripts/validate-package.py"
   printf '%s\n' "${version:-unknown}" > "$d/.prefixer_version"
   installed="$installed  $d ($sc)
 "

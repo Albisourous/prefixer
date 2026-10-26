@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prefixer — scoped codebase search for AI agents · 79% fewer search tokens</title>
-<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search. Fewer tokens, faster searches — measured 79% mean search bytes saved across 18 public repos. Works with Devin, Claude Code, Codex, and Cursor.">
+<title>Prefixer: scoped codebase search for AI agents · 79% fewer search tokens</title>
+<meta name="description" content="Prefixer is an open-source agent skill that gives AI coding agents a namespace map for scoped codebase search. Fewer tokens, faster searches: measured 79% mean search bytes saved across 18 public repos. Works with Devin, Claude Code, Codex, and Cursor.">
 <meta name="keywords" content="prefixer, agent skill, code search, codebase search, namespace map, AI coding agent, scoped search, token efficiency, reduce agent tokens, prompt caching, Devin skill, Claude Code skill, Cursor skill, Codex skill, agent skills, codebase navigation, repo map, graphify alternative, llm token cost">
 <meta name="robots" content="index,follow">
 <meta name="author" content="Albisourous">
@@ -17,7 +17,7 @@
 <meta property="og:image" content="https://albisourous.github.io/prefixer/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Prefixer — scoped code search for AI agents. 79% fewer search bytes, measured on 18 public repos.">
+<meta property="og:image:alt" content="Prefixer: scoped code search for AI agents. 79% fewer search bytes, measured on 18 public repos.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Prefixer · scoped code search skill for AI agents">
 <meta name="twitter:description" content="A namespace map that keeps agent searches inside the right part of the tree. Fewer tool calls, fewer tokens.">
@@ -28,7 +28,7 @@
   "@type": "SoftwareSourceCode",
   "name": "prefixer",
   "alternateName": "Prefixer agent skill",
-  "softwareVersion": "0.11.0",
+  "softwareVersion": "0.11.1",
   "description": "An agent skill for scoped codebase search. A namespace map keeps agent searches inside the right part of the tree; playbooks cover index-time doc prefixes and prompt-cache ordering.",
   "codeRepository": "https://github.com/Albisourous/prefixer",
   "programmingLanguage": "Shell",
@@ -57,9 +57,9 @@
     {"@type": "Question", "name": "How is prefixer different from RAG and embeddings?",
      "acceptedAnswer": {"@type": "Answer", "text": "They solve different problems. Prefixer scopes lexical search before it runs; embeddings rank results after retrieval. The index-time prefix playbook in references/ tightens RAG corpora too."}},
     {"@type": "Question", "name": "How much does scoped search actually save?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Measured, not estimated: eval_repo.sh greps every namespace at repo root and inside its scope. Across an 18-repo public corpus — including obra/superpowers, anthropics/skills, and Graphify-Labs/graphify — it saved 79% of output bytes on average, per-repo means 53–92%. The table refreshes weekly in eval/RESULTS.md."}},
+     "acceptedAnswer": {"@type": "Answer", "text": "Measured, not estimated: eval_repo.sh greps every namespace at repo root and inside its scope. Across an 18-repo public corpus, including obra/superpowers, anthropics/skills, and Graphify-Labs/graphify, it saved 79% of output bytes on average, per-repo means 53-92%. The table refreshes weekly in eval/RESULTS.md."}},
     {"@type": "Question", "name": "How is prefixer different from graphify or a skills pack?",
-     "acceptedAnswer": {"@type": "Answer", "text": "Graphify builds a persistent queryable knowledge graph of a codebase — the right tool for 'how does X connect to Y' questions. Prefixer answers a smaller question — which directory should this search hit first — with a 12-line file, no install, no pipeline. Skills packs (superpowers, mattpocock/skills, agent-skills) bundle many skills; prefixer is one skill doing one job. They stack together."}}
+     "acceptedAnswer": {"@type": "Answer", "text": "Graphify builds a persistent queryable knowledge graph of a codebase, the right tool for 'how does X connect to Y' questions. Prefixer answers a smaller question (which directory should this search hit first) with a 12-line file, no install, no pipeline. Skills packs (superpowers, mattpocock/skills, agent-skills) bundle many skills; prefixer is one skill doing one job. They stack together."}}
   ]
 }
 </script>
@@ -197,10 +197,10 @@ any agent that reads skills:
   bytes-saved number.</li>
   <li><strong>See it.</strong> <code>scripts/visualize.py</code> renders an
   interactive HTML report: the map painted on your file tree, coverage per
-  namespace, and scoped-vs-root byte bars — one file, no dependencies.</li>
+  namespace, and scoped-vs-root byte bars, in one file with no dependencies.</li>
 </ul>
 
-<h2>Measured on public repos — including the skill repos agents install</h2>
+<h2>Measured on public repos, including the skill repos agents install</h2>
 
 <img src="eval-chart.svg" alt="Measured mean search bytes saved per repo across 18 public repos, 53 to 92%" width="720" style="max-width:100%;height:auto;margin:0 0 16px">
 
@@ -227,7 +227,7 @@ any agent that reads skills:
 </table>
 
 <p class="muted">Corpus mean: <strong>79%</strong> across 18 repos, 149
-namespaces. Regenerated weekly from <code>eval/repos.txt</code> by CI —
+namespaces. Regenerated weekly from <code>eval/repos.txt</code> by CI;
 full table and method in
 <a href="https://github.com/Albisourous/prefixer/blob/main/eval/RESULTS.md">eval/RESULTS.md</a>.</p>
 
@@ -252,7 +252,7 @@ cfg:                             4         572         0           0     n/a
 boot:                          313       41787         0           0     n/a
 
 mean pct_saved: 85% across 5 namespaces
-(7 namespaces n/a — 0 hits for their own name; probe them with real query patterns)</pre>
+(7 namespaces n/a: 0 hits for their own name; probe them with real query patterns)</pre>
 </div>
 
 <p class="muted">Scoped grep vs root grep, same query per namespace.
@@ -263,7 +263,7 @@ your numbers.</p>
 
 <pre><code>npx skills add Albisourous/prefixer</code></pre>
 
-<p class="muted">Or auto-detect your agent — the installer checks for
+<p class="muted">Or auto-detect your agent: the installer checks for
 <code>.claude</code>, <code>.devin</code>, and <code>.agents</code> markers
 and installs there:</p>
 
@@ -353,17 +353,17 @@ and RadixAttention.
   <summary>How much does scoped search actually save?</summary>
   <p>Measured, not estimated: <code>eval_repo.sh</code> greps every
   namespace at repo root and inside its scope. Across an 18-repo public
-  corpus — including the skill repos agents install most — it saved a
-  mean 79% of output bytes, per-repo means 53–92%. Your repo's number is
+  corpus, including the skill repos agents install most, it saved a
+  mean 79% of output bytes, per-repo means 53-92%. Your repo's number is
   one command away.</p>
 </details>
 <details>
   <summary>How is this different from graphify or a skills pack?</summary>
   <p><a href="https://github.com/Graphify-Labs/graphify">Graphify</a>
-  builds a persistent, queryable knowledge graph of your codebase — the
+  builds a persistent, queryable knowledge graph of your codebase, the
   right tool for "how does X connect to Y" questions and architecture
-  onboarding. Prefixer answers a smaller question — which directory
-  should this search hit first — with a 12-line file, no install, no
+  onboarding. Prefixer answers a smaller question (which directory
+  should this search hit first) with a 12-line file, no install, no
   pipeline (81% of search bytes saved on graphify's own repo). Skills
   packs like superpowers or agent-skills bundle many skills for many
   workflows; prefixer is one skill doing one job. They stack.

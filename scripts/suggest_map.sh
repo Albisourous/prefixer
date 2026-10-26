@@ -19,13 +19,13 @@ here="$(cd "$(dirname "$0")" && pwd)"
 root="$(map_root "${1:-$PWD}")"
 map="$root/.prefixer/namespaces.md"
 log="$root/.prefixer/metrics.jsonl"
-[ -f "$map" ] || { echo "no map at $map — run init_namespaces.sh first" >&2; exit 1; }
+[ -f "$map" ] || { echo "no map at $map; run init_namespaces.sh first" >&2; exit 1; }
 cd "$root" || exit 1
 
 pairs="$(scope_pairs "$map")"
 lines=0; [ -f "$log" ] && lines="$(grep -c . "$log" 2>/dev/null || true)"
 
-echo "prefixer map review — $(grep -m1 '^repo:' "$map" | sed 's/^repo: *//')"
+echo "prefixer map review: $(grep -m1 '^repo:' "$map" | sed 's/^repo: *//')"
 echo "log: $lines line(s) in .prefixer/metrics.jsonl"
 echo
 
@@ -40,7 +40,7 @@ covered() { # searched-dir, tab-separated tag/name/scope lines → 0 if a row co
         *) rowdir="${tok%/*}" ;;
       esac
       [ -z "$rowdir" ] && continue
-      case "$d/" in "$rowdir/"*|"$rowdir"*) return 0 ;; esac
+      case "$d/" in "$rowdir/"*) return 0 ;; esac
     done <<< "$(expand_scope "$sc")"
   done <<< "$2"
   return 1
@@ -101,7 +101,7 @@ if [ -f "$log" ]; then
 fi
 
 if [ -n "$adds" ]; then
-  echo "ADD — rows real searches asked for:"
+  echo "ADD: rows real searches asked for:"
   printf '%s' "$adds" | sort -u | while IFS=$'\t' read -r d why; do
     add_row "$d" "$why"
   done
@@ -112,13 +112,13 @@ fi
 lint="$(bash "$here/check_namespaces.sh" "$root" 2>&1 || true)"
 unc="$(printf '%s\n' "$lint" | sed -n 's/^warn uncovered \(top dir\|dir\): \(.*\)\/$/\2/p')"
 if [ -n "$unc" ]; then
-  echo "CHECK — uncovered dirs, and whether they changed after the map:"
+  echo "CHECK: uncovered dirs, and whether they changed after the map:"
   printf '%s\n' "$unc" | while IFS= read -r d; do
     [ -n "$d" ] || continue
     if [ -d "$d" ] && [ -n "$(find "$d" -newer "$map" -type f -print -quit 2>/dev/null)" ]; then
-      echo "  $d/  — touched after the map last changed"
+      echo "  $d/  : touched after the map last changed"
     else
-      echo "  $d/  — pre-dates the map; likely a scope fix"
+      echo "  $d/  : pre-dates the map; likely a scope fix"
     fi
   done
   echo
@@ -136,7 +136,7 @@ if [ "$lines" -ge 10 ]; then
 "
   done <<< "$pairs"
   if [ -n "$cold" ]; then
-    echo "CUT — rows that scoped 0 of $lines logged searches (keep if new):"
+    echo "CUT: rows that scoped 0 of $lines logged searches (keep if new):"
     printf '%s' "$cold"
     echo
   fi
@@ -146,8 +146,8 @@ fi
 if [ -f "$log" ]; then
   roots="$(grep -c '"scope":"root"' "$log" 2>/dev/null || true)"
   if [ "${roots:-0}" -gt 0 ]; then
-    echo "ROOT — $roots logged search(es) ran unscoped."
-    echo "  route searches through search.sh <ns> <pattern> — it logs and widens itself"
+    echo "ROOT: $roots logged search(es) ran unscoped."
+    echo "  route searches through search.sh <ns> <pattern>; it logs and widens itself"
     echo
   fi
 fi
@@ -155,5 +155,5 @@ fi
 # --- HEALTH: the lint verdict, restated --------------------------------
 echo "HEALTH: $(printf '%s\n' "$lint" | tail -1)"
 [ "$lines" -eq 0 ] &&
-  echo "(no log yet — searches run via search.sh or measure_search.sh start the flywheel)"
+  echo "(no log yet; searches run via search.sh or measure_search.sh start the flywheel)"
 exit 0

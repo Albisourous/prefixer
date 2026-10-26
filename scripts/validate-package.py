@@ -97,6 +97,21 @@ for s in sorted((ROOT / "scripts").glob("*.sh")):
     if not s.read_text(encoding="utf-8").startswith("#!"):
         fail(f"{s.relative_to(ROOT)}: missing shebang")
 
+# no em/en dashes in user-facing prose (see AGENTS.md writing style)
+SKIP_DIRS = {".git", ".prefixer", "node_modules", ".work", ".fixture", ".runs"}
+TEXT_EXT = {".md", ".txt", ".html", ".svg", ".yml", ".yaml"}
+DASH = re.compile(r"[—–−―]")
+for f in sorted(ROOT.rglob("*")):
+    if f.suffix not in TEXT_EXT or not f.is_file():
+        continue
+    rel = f.relative_to(ROOT)
+    if SKIP_DIRS & set(rel.parts):
+        continue
+    for lineno, line in enumerate(read(str(rel)).splitlines(), 1):
+        hit = DASH.search(line)
+        if hit:
+            fail(f"{rel}:{lineno}: em/en dash in user-facing text")
+
 if errors:
     for e in errors:
         print(f"FAIL {e}", file=sys.stderr)
