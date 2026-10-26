@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.1] - 2026-10-26
+
+Description and docs: better triggers, no behavior change.
+
+- **SKILL.md description** gains "save tokens" and "cut context cost" as
+  trigger phrases so agents surface the skill when users ask for cheaper
+  search. First sentence unchanged; manifests still conform.
+- **README + site** rewritten to plain style, no dash connector overuse;
+  landing page gains a flow diagram, stat cards, and real eval output.
+
 ## [0.7.0] - 2026-10-26
 
 Whole-repo evaluation with nothing hardcoded.

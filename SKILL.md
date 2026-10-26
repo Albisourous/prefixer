@@ -2,12 +2,13 @@
 name: prefixer
 description: |
   Give agents a namespace map of a codebase so searches start scoped instead
-  of broad. Use at the start of work in an unfamiliar or large repo, when a
-  task needs repeated codebase search, when a grep or glob returns a wall of
-  hits, or when results keep landing in unrelated parts of the tree.
+  of broad. Use to save tokens and cut context cost when agents search code:
+  at the start of work in an unfamiliar or large repo, when a task needs
+  repeated codebase search, when a grep or glob returns a wall of hits, or
+  when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.7.0"
+  version: "0.7.1"
 allowed-tools:
   - read
   - grep
