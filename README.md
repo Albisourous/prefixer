@@ -48,6 +48,18 @@ read src/auth/session.ts:40-58          → found
 ≈ 3 tool calls, a fraction of the tokens, answer found on purpose
 ```
 
+**Measured, not illustrative:** `eval_scope.sh` ran the same grep at repo
+root and inside a namespace on two real repos:
+
+| repo | query | root output | scoped output | bytes saved | est. tokens |
+|---|---|---|---|---|---|
+| RoBall3D | `seed` → `gen:` | 2.81 MB (676 hits) | 28 KB (245 hits) | **98%** | ~695K |
+| RoBall3D | `music` → `aud:` | 2.48 MB (313 hits) | 24 KB (215 hits) | **99%** | ~614K |
+| pokestrike | `seed` → `game:` | 3.60 MB (2217 hits) | 17 KB (177 hits) | **99%** | ~895K |
+
+Run `bash scripts/eval_scope.sh <repo> <pattern> <prefix>` on your own repo
+to get your numbers.
+
 ## Good fit if you
 
 - run AI coding agents over large repos or **many repos** and want fewer,

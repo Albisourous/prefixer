@@ -65,5 +65,36 @@ else
   echo "ok   regeneration refused"
 fi
 
+# --- check_namespaces.sh: scaffolded map passes, broken map fails ---
+if bash "$here/check_namespaces.sh" "$repo" >/dev/null 2>&1; then
+  echo "ok   check passes on scaffolded map"
+else
+  echo "FAIL check passes on scaffolded map"; fail=1
+fi
+
+bad="$tmp/broken"
+mkdir -p "$bad/src" "$bad/.prefixer"
+echo x > "$bad/src/a.ts"
+cat > "$bad/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+| prefix | scope | contains |
+|--------|-------|----------|
+| api: | src/** | handlers |
+| api: | src/nope/** | dup and dead |
+| todo-x: | nowhere/** | TODO: unfinished |
+EOF
+if bash "$here/check_namespaces.sh" "$bad" >/dev/null 2>&1; then
+  echo "FAIL check catches broken map"; fail=1
+else
+  echo "ok   check catches broken map"
+fi
+
+# --- eval_scope.sh emits a metrics JSON line ---
+out="$(bash "$here/eval_scope.sh" "$repo" "x" api)"
+case "$out" in
+  *'"est_tokens_saved"'*) echo "ok   eval emits metrics" ;;
+  *) echo "FAIL eval emits metrics"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

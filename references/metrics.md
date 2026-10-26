@@ -72,3 +72,20 @@ with prefixer      3.1       4.6         71%         1,900
 
 5. If the delta is flat, say so. The map may need better namespaces, or the
   task class may not be search-bound. Flat results are findings too.
+
+## Proving the savings — `eval_scope.sh`
+
+The load-bearing number is **bytes of search output the agent did not have
+to read**. `scripts/eval_scope.sh <repo> <pattern> <prefix>` runs one grep
+at repo root and the same grep inside the namespace's globs, then reports
+the delta:
+
+```json
+{"task":"eval-scope","ns":"gen","pattern":"seed","root_hits":676,"root_bytes":2808952,"ns_hits":245,"ns_bytes":28245,"pct_saved":98,"est_tokens_saved":695176}
+```
+
+`est_tokens_saved` is `bytes_saved / 4`. `--log` appends the line to
+`.prefixer/metrics.jsonl`. Run it on a few representative queries after a
+map lands — that is the number in the README claims, not a vibes estimate.
+A flat `pct_saved` means the namespace is too wide or the pattern was never
+search-bound; adjust the row and measure again.

@@ -7,7 +7,7 @@ description: |
   hits, or when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 allowed-tools:
   - read
   - grep
@@ -130,7 +130,9 @@ Format details and maps for other repo shapes: `references/namespaces.md`.
 file. Wholesale regeneration loses the accumulated detail that made it
 useful. Prune dead rows, add missing ones, keep the rest byte-identical — a
 rewritten map also breaks the prompt-cache prefix of every session that
-loaded it.
+loaded it. After curating, run `bash scripts/check_namespaces.sh` — a row
+whose globs resolve to nothing is a lie the map is telling every future
+session.
 
 **Many codebases:** the same trick stacks. An org-level map picks the
 codebase (`pay: services/payments/**`), the repo map picks the namespace
@@ -227,7 +229,9 @@ These thoughts mean stop. You are rationalizing.
 - `references/namespaces.md` — map format, repo shapes, multi-repo stacking
 - `references/metrics.md` — metric definitions, JSONL schema, delta reporting
 - `scripts/init_namespaces.sh` — scaffold a namespace map for the current repo
+- `scripts/check_namespaces.sh` — lint a map: dead scopes, dup tags, drafts
 - `scripts/measure_search.sh` — run a search and log it in one step
+- `scripts/eval_scope.sh` — measure the token delta of a scoped search vs root
 
 Adjacent playbooks kept for pipeline and prompt authors (outside this
 skill's core job): `references/index-prefixes.md`,

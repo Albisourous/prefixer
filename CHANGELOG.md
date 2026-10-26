@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0] - 2026-10-26
+
+Map linting and a real token-savings meter.
+
+- **`check_namespaces.sh`** — lints a map: dead scopes (globs that resolve
+  to nothing), duplicate tags across nesting levels, draft/TODO rows,
+  generated dirs mapped, uncovered code dirs. Brace globs `{a,b}` resolve
+  the way the searching shell expands them.
+- **`eval_scope.sh`** — runs one grep at repo root and the same grep inside
+  a namespace, reports hits/bytes/`est_tokens_saved` as JSON (`--log`
+  appends to metrics.jsonl). On real repos: 98–99% of search output
+  eliminated per scoped query (~0.6–0.9M est. tokens).
+- `test_scaffold.sh` grew to 16 assertions covering both new scripts.
+
 ## [0.5.0] - 2026-10-26
 
 Nested namespaces and zero-TODO scaffolds — sub-teams inside a codebase.
