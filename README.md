@@ -4,9 +4,10 @@
 
 # prefixer
 
-An agent skill for scoped codebase search, index-time doc prefixes, and
-token-efficient prompt ordering — for Devin, Claude Code, Codex, Cursor,
-and friends.
+An agent skill for scoped codebase search — a small namespace map that
+keeps agent searches inside the right part of the tree. For Devin, Claude
+Code, Codex, Cursor, and friends. Playbooks for index-time doc prefixes and
+prompt-cache ordering ship in `references/`.
 
 <p>
   <a href="https://github.com/Albisourous/prefixer/stargazers"><img src="https://img.shields.io/github/stars/Albisourous/prefixer" alt="GitHub stars"></a>

@@ -10,9 +10,16 @@
     {
       "name": "prefixer",
       "source": "./",
-      "description": "Add namespace prefixes to a codebase so searches start scoped, indexed text clusters tighter, and prompt caches hit.",
+      "description": "Give agents a namespace map of a codebase so searches start scoped instead of broad.",
       "license": "MIT",
-      "keywords": ["search", "retrieval", "tokens", "prompt-caching", "namespaces", "rag"]
+      "keywords": [
+        "search",
+        "retrieval",
+        "tokens",
+        "prompt-caching",
+        "namespaces",
+        "rag"
+      ]
     }
   ]
 }

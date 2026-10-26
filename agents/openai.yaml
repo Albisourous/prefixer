@@ -1,4 +1,4 @@
 interface:
   display_name: "Prefixer"
-  short_description: "Scope agent search with namespace prefixes"
+  short_description: "Scoped codebase search via a namespace map"
   default_prompt: "Use $prefixer to map this repo's namespaces and keep my searches scoped."

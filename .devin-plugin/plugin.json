@@ -1,7 +1,7 @@
 {
   "name": "prefixer",
-  "version": "0.1.0",
-  "description": "Add namespace prefixes to a codebase so searches start scoped, indexed text clusters tighter, and prompt caches hit.",
+  "version": "0.2.0",
+  "description": "Give agents a namespace map of a codebase so searches start scoped instead of broad.",
   "author": {
     "name": "Albisourous",
     "url": "https://github.com/Albisourous"
@@ -9,5 +9,13 @@
   "homepage": "https://github.com/Albisourous/prefixer",
   "repository": "https://github.com/Albisourous/prefixer",
   "license": "MIT",
-  "keywords": ["search", "retrieval", "tokens", "prompt-caching", "namespaces", "rag", "skills"]
+  "keywords": [
+    "search",
+    "retrieval",
+    "tokens",
+    "prompt-caching",
+    "namespaces",
+    "rag",
+    "skills"
+  ]
 }

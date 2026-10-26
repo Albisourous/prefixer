@@ -44,8 +44,8 @@ desc = " ".join(desc_m.group(1).split()) if desc_m else ""
 first_sentence = re.split(r"(?<=[.!?])\s", desc.strip())[0] if desc else ""
 if not desc:
     fail("SKILL.md: missing description")
-elif "use when" not in desc.lower():
-    fail("SKILL.md: description must state triggers ('Use when ...')")
+elif not re.search(r"\buse (when|at|for|to)\b", desc, re.I):
+    fail("SKILL.md: description must state triggers ('Use when/at/for ...')")
 
 body = skill[fm.end():] if fm else skill
 words = len(body.split())

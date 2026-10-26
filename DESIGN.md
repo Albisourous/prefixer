@@ -299,6 +299,12 @@ Notes:
 
 ## 5. `SKILL.md` outline
 
+> **Scope decision (v0.2.0):** the shipped skill narrowed to one job —
+> namespace-scoped codebase search — plus incremental mapping ("map the
+> segment, not the world"). The index-prefix and cache-ordering arms below
+> moved into `references/` as playbooks for pipeline and prompt authors.
+> Kept here for design history.
+
 Frontmatter (spec + Devin fields; description does the triggering):
 
 ```yaml
