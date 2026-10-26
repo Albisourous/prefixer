@@ -7,7 +7,7 @@ description: |
   hits, or when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.6.0"
+  version: "0.7.0"
 allowed-tools:
   - read
   - grep
@@ -232,6 +232,7 @@ These thoughts mean stop. You are rationalizing.
 - `scripts/check_namespaces.sh` — lint a map: dead scopes, dup tags, drafts
 - `scripts/measure_search.sh` — run a search and log it in one step
 - `scripts/eval_scope.sh` — measure the token delta of a scoped search vs root
+- `scripts/eval_repo.sh` — lint + eval every namespace in a map, mean % saved
 
 Adjacent playbooks kept for pipeline and prompt authors (outside this
 skill's core job): `references/index-prefixes.md`,

@@ -47,16 +47,16 @@ nocheck "no leftover todo markers"     'todo-' "$map"
 nocheck "no undocumented cells"        'undocumented' "$map"
 
 # --- fixture: camelCase siblings derive distinguishing segments ---
-repo2="$tmp/roball"
-mkdir -p "$repo2/src"/{RoBallServer,RoBallClient}
-echo x > "$repo2/src/RoBallServer/SaveService.luau"
-echo x > "$repo2/src/RoBallClient/BeatPulse.client.luau"
+repo2="$tmp/ballgame"
+mkdir -p "$repo2/src"/{GameServer,GameClient}
+echo x > "$repo2/src/GameServer/SaveService.luau"
+echo x > "$repo2/src/GameClient/BeatPulse.client.luau"
 bash "$here/init_namespaces.sh" "$repo2" >/dev/null 2>&1
 map2="$repo2/.prefixer/namespaces.md"
 
-check "repo slug from dir name"        'repo: roball' "$map2"
-check "client segment derived"         'client: | src/RoBallClient/\*\*' "$map2"
-check "server segment derived"         'server: | src/RoBallServer/\*\*' "$map2"
+check "repo slug from dir name"        'repo: ballgame' "$map2"
+check "client segment derived"         'client: | src/GameClient/\*\*' "$map2"
+check "server segment derived"         'server: | src/GameServer/\*\*' "$map2"
 
 # --- refuses to regenerate an existing map ---
 if bash "$here/init_namespaces.sh" "$repo2" >/dev/null 2>&1; then
@@ -94,6 +94,13 @@ out="$(bash "$here/eval_scope.sh" "$repo" "x" api)"
 case "$out" in
   *'"est_tokens_saved"'*) echo "ok   eval emits metrics" ;;
   *) echo "FAIL eval emits metrics"; fail=1 ;;
+esac
+
+# --- eval_repo.sh aggregates the whole map ---
+out="$(bash "$here/eval_repo.sh" "$repo")"
+case "$out" in
+  *"mean pct_saved"*) echo "ok   repo eval aggregates" ;;
+  *) echo "FAIL repo eval aggregates"; fail=1 ;;
 esac
 
 echo

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0] - 2026-10-26
+
+Whole-repo evaluation with nothing hardcoded.
+
+- **`eval_repo.sh`** — lints a map, then probes every namespace with its
+  own name as the grep pattern (derived vocabulary probing itself — zero
+  per-repo config). Prints a per-row hit/byte table and the mean
+  `pct_saved`. Measured on public repos: 89–91% of search-output bytes
+  eliminated on average.
+- README now carries measured numbers from public repos instead of an
+  illustrative before/after.
+
 ## [0.6.0] - 2026-10-26
 
 Map linting and a real token-savings meter.
