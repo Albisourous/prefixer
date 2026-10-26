@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Prefixer — scoped code search skill for AI agents">
-<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree. Fewer tool calls, smaller results, fewer tokens.">
+<meta property="og:description" content="A small namespace map that keeps agent searches inside the right part of the tree — measured 89–91% of search-output bytes saved on public repos.">
 <meta property="og:url" content="https://albisourous.github.io/prefixer/">
 <meta property="og:image" content="https://albisourous.github.io/prefixer/icon.svg">
 <meta name="twitter:card" content="summary">
@@ -22,6 +22,7 @@
   "@type": "SoftwareSourceCode",
   "name": "prefixer",
   "alternateName": "Prefixer agent skill",
+  "softwareVersion": "0.7.0",
   "description": "An agent skill for scoped codebase search — a namespace map that keeps agent searches inside the right part of the tree, plus playbooks for index-time doc prefixes and prompt-cache ordering.",
   "codeRepository": "https://github.com/Albisourous/prefixer",
   "programmingLanguage": "Shell",
@@ -85,8 +86,9 @@ table of short prefixes to the parts of the repo that matter — so searches
 start scoped, widen only on a miss, and land inside the right files first.</p>
 
 <p>It is plain Markdown and shell scripts, not a service and not an MCP
-server. One <code>SKILL.md</code>, five reference playbooks, three scripts.
-It works with any agent that reads skills:
+server. One <code>SKILL.md</code>, five reference playbooks, and a small
+script toolkit — scaffold, lint, measure, eval, test. It works with any
+agent that reads skills:
 <a href="https://devin.ai">Devin</a>, Claude Code, Codex, Cursor, and friends.</p>
 
 <a class="cta" href="https://github.com/Albisourous/prefixer">View on GitHub →</a>
@@ -98,14 +100,34 @@ It works with any agent that reads skills:
   <code>.prefixer/namespaces.md</code> — rows like
   <code>auth: | src/auth/** | login, tokens, sessions</code> — and searches
   inside the matching namespace instead of the tree.</li>
+  <li><strong>Derived, not declared.</strong> The scaffold names namespaces
+  from the codebase's own vocabulary — distinguishing dir-name segments,
+  dominant file terms — never a hardcoded wordlist. Every map carries a
+  <code>repo:</code> qualifier, so <code>payments:auth:</code> and
+  <code>checkout-service:auth:</code> stay distinct across codebases, and
+  rows nest for sub-teams (<code>payments:checkout:</code>).</li>
   <li><strong>Map the segment, not the world.</strong> No map? The agent
   builds only the 3–5 namespaces the current task touches. A partial map is
   a legal, working state.</li>
   <li><strong>Widen one level on a miss.</strong> A scoped search that misses
   widens to the parent scope, then the root — never a blind second pass.</li>
   <li><strong>Measure the delta.</strong> Each scoped search appends a line to
-  <code>.prefixer/metrics.jsonl</code> so the win is logged, not vibes.</li>
+  <code>.prefixer/metrics.jsonl</code>; <code>check_namespaces.sh</code>
+  lints the map for dead scopes and <code>eval_repo.sh</code> proves the
+  bytes saved.</li>
 </ul>
+
+<h2>Measured on public repos</h2>
+
+<table>
+  <tr><th>repo</th><th>namespaces</th><th>mean bytes saved</th><th>range</th></tr>
+  <tr><td><a href="https://github.com/obra/superpowers">obra/superpowers</a></td><td>8</td><td>89%</td><td>69–100%</td></tr>
+  <tr><td><a href="https://github.com/DietrichGebert/ponytail">DietrichGebert/ponytail</a></td><td>12</td><td>91%</td><td>68–100%</td></tr>
+</table>
+
+<p class="muted">Scoped grep vs root grep, same query per namespace —
+<code>bash scripts/eval_repo.sh &lt;repo&gt;</code> on your own repo gets
+your numbers.</p>
 
 <h2>Install</h2>
 
@@ -148,7 +170,9 @@ collected in
 <footer>
   <p><a href="https://github.com/Albisourous/prefixer">Albisourous/prefixer on GitHub</a> ·
      <a href="https://skills.sh/albisourous/prefixer">skills.sh listing</a> ·
+     <a href="https://github.com/Albisourous/prefixer/releases">releases</a> ·
      <a href="https://github.com/Albisourous/prefixer/blob/main/CHANGELOG.md">changelog</a> ·
+     <a href="https://github.com/Albisourous/prefixer/issues">issues</a> ·
      MIT license</p>
 </footer>
 

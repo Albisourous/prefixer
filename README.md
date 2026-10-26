@@ -85,7 +85,9 @@ build plan.
 
 ## Status
 
-v0.1.0 — first cut. Layout follows the humanizer model: one canonical
+[v0.7.0](https://github.com/Albisourous/prefixer/releases) — derived
+prefixes, `repo:` qualifiers, nested sub-team namespaces, map linting, and
+a measured-eval harness. Layout follows the humanizer model: one canonical
 `SKILL.md` at the root, thin plugin manifests per harness.
 
 ## Install
@@ -129,14 +131,15 @@ read/grep/glob/exec/edit so it runs without permission prompts.
 
 Copy `SKILL.md`, `references/`, and `scripts/` into
 `.agents/skills/prefixer/` — Codex, Copilot CLI, and Gemini read that path.
-Or `npx skills add Albisourous/prefixer` once listed on skills.sh.
+Or `npx skills add Albisourous/prefixer` — listed on
+[skills.sh](https://skills.sh/albisourous/prefixer).
 
 ## Layout
 
 ```
 SKILL.md                  canonical skill (root, single file)
 references/               deep-dives loaded on demand
-scripts/                  namespace-map + metrics + validator
+scripts/                  scaffold, lint, measure, eval, validate, test
 agents/openai.yaml        OpenAI-compatible agent display data
 *-plugin/                 per-harness manifests (claude, cursor, devin)
 ```
@@ -144,12 +147,15 @@ agents/openai.yaml        OpenAI-compatible agent display data
 ## The short version of what it does
 
 1. **Maps your repo's namespaces** once into a small index file every agent
-   session can read instead of scanning the tree.
+   session can read instead of scanning the tree — names **derived from the
+   codebase's own vocabulary** (no hardcoded wordlists), each map carrying a
+   `repo:` qualifier so prefixes stay unique across many codebases, and
+   nested rows for sub-teams (`payments:checkout:`).
 2. **Searches scoped-first** — narrowest namespace, widen on miss.
-3. **Prefixes what gets indexed** — domain-descriptive prefixes on docs,
-   chunks, and embeddings inputs, discovered via the paper's tiered strategy.
-4. **Keeps prompts cache-friendly** — stable context early, volatile late.
-5. **Measures everything** — baseline first, log per task, report the delta.
+3. **Measures everything** — baseline first, log per task, report the delta;
+   `eval_repo.sh` proves the bytes saved.
+4. **Reference playbooks** (in `references/`): index-time doc prefixes for
+   RAG, and prompt-cache-friendly ordering for prompts and rules files.
 
 ## Not to be confused with
 
