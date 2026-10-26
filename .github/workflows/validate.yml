@@ -9,7 +9,7 @@ jobs:
       - name: spec conformance (agentskills.io)
         run: |
           pip install -q "skills-ref==0.1.1"
-          agentskills validate .
+          agentskills validate "$PWD"
       - run: bash scripts/test_scaffold.sh
       - name: syntax-check every script
         run: |

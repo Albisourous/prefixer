@@ -36,6 +36,12 @@ project needs.
   "N% larger" instead of "-N% smaller"; RESULTS.md regenerated.
 - **`validate-package.py` gains a check:** the consumer workflow's
   script-fetch pin must equal the release version.
+- **`run.sh --dry-run` works with no agent CLI.** Adapter picking used
+  to require a detected binary even though a dry run never calls one;
+  machines with no agent CLI (like CI) fell over at `pick_adapter`. The
+  auto path now falls back to the devin adapter so hook wiring can be
+  verified anywhere, and the not-ready message covers missing binaries
+  as well as missing logins.
 - README, docs site, and llms.txt synced: windsurf install, doctor.sh,
   and the agent-eval aggregate numbers (4.6 vs 7.2 mean tool calls per
   task, mapped vs baseline).

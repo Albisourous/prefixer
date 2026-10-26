@@ -48,10 +48,14 @@ pick_adapter() {
     ( . "$here/adapters/$a.sh"; agent_ready >/dev/null 2>&1 ) && { echo "$a"; return 0; }
   done
   [ -n "$first" ] && { echo "$first"; return 0; }   # none ready — dry-run path
+  # nothing detected at all: refuse an explicit --adapter, but for the
+  # auto path default to devin so --dry-run can still verify hook wiring
+  # on machines with no agent CLI; real runs exit at agent_ready below
+  [ -z "$want" ] && echo "devin" && return 0
   return 1
 }
 adapter="$(pick_adapter "$adapter")" || {
-  echo "no agent CLI found; looked for devin, claude, devin_acp" >&2
+  echo "no agent CLI found; looked for ${adapter:-devin, claude, devin_acp}" >&2
   echo "install one, or point DEVIN_BIN at a binary" >&2; exit 1; }
 . "$here/adapters/$adapter.sh"
 export -f agent_run agent_detect   # timeout_run execs via bash -c
@@ -67,9 +71,11 @@ cp "$fixture/.prefixer/namespaces.md" "$runs/fixture.map.md" 2>/dev/null || true
 ( cd "$fixture" && bash "$PFX_ROOT/scripts/install.sh" --platform all --project >/dev/null )
 
 if ! agent_ready; then
-  echo "$adapter is installed but not authenticated; log in first:" >&2
-  case "$adapter" in devin) echo "  devin auth login" >&2 ;; claude) echo "  claude login" >&2 ;; esac
-  [ -n "$dry" ] || exit 1
+  [ -n "$dry" ] || {
+    echo "$adapter is missing or not authenticated; log in first:" >&2
+    case "$adapter" in devin) echo "  devin auth login" >&2 ;; claude) echo "  claude login" >&2 ;; esac
+    exit 1
+  }
 fi
 
 # timeout wrapper: gtimeout if present, else perl's alarm (stock macOS)
