@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0] - 2026-10-26
+
+Derived prefixes and org-unique maps — built for the many-codebases case.
+
+- **Prefixes are derived, not declared.** `init_namespaces.sh` dropped its
+  hard-coded wordlist: a prefix now comes from the codebase's own
+  vocabulary — a distinguishing dir-name segment no sibling shares, then
+  the dominant file-name token, then the dir name itself, then a visible
+  `todo-` marker. `contains` cells fall back to the real file names inside
+  a scope instead of only agent-doc mentions.
+- **`repo:` header.** Every map now declares its codebase's unique
+  qualifier, derived from the git remote (dir name as fallback). Qualified
+  tags (`payments:auth:`) stay unique when dozens of codebases share
+  directory names — for shared indexes, org-level maps, and multi-repo
+  agent sessions.
+- Prefix collisions inside a map now degrade to a `todo-` marker instead of
+  two rows sharing a name.
+
 ## [0.3.0] - 2026-10-26
 
 Field-report fixes from a real first run on a small TypeScript repo.

@@ -8,6 +8,7 @@ search, not for humans browsing folders.
 
 ```markdown
 # namespaces
+repo: acme-payments
 
 | prefix | scope                  | contains                     |
 |--------|------------------------|------------------------------|
@@ -21,14 +22,23 @@ search, not for humans browsing folders.
 | scr:   | scripts/**             | one-off tooling, maintenance |
 ```
 
-- `prefix`: 2 to 6 lowercase letters plus a colon. Pick the word a searcher
-  would say, not an abbreviation only maintainers know.
+- `repo`: one line under the title — this codebase's unique qualifier,
+  derived from the git remote (or directory name when there is none). It is
+  what keeps `auth:` unique across the org: `acme-payments:auth:` and
+  `checkout-service:auth:` name two different namespaces in shared indexes,
+  org-level maps, and multi-repo MCP sessions.
+- `prefix`: 2 to 8 lowercase letters plus a colon. **Derived, not
+  declared** — the word comes from the codebase's own vocabulary: the
+  directory's name or distinguishing segment, the dominant term in the
+  files it scopes. Invented categories drift as the repo evolves; derived
+  names track it.
 - `scope`: one or more path globs. These are the working part — they are what
   get passed to grep and glob calls.
 - `contains`: one line, written to disambiguate between sibling namespaces,
   not to describe the folder. "auth: login, sessions, tokens" tells a
   searcher this is where credential checks live; "auth: authentication code"
-  tells it nothing the name doesn't.
+  tells it nothing the name doesn't. Seed it from what actually lives there
+  — agent-doc mentions, the files inside — never boilerplate.
 
 ## Rules
 
@@ -95,6 +105,13 @@ scan is the root-grep problem multiplied by every codebase in reach.
   namespace inside it.
 - **Two-level tags.** Results read `pay:api:src/refunds.ts:42` — codebase,
   then namespace, then path. Two colons, no ambiguity.
+- **`repo:` makes prefixes unique.** Namespace names repeat across
+  codebases by nature — every service has an `auth/` and an `api/`. The
+  `repo:` header in each map qualifies them: `payments:auth:` and
+  `checkout-service:auth:` are distinct keys in a shared index or an agent
+  session spanning repos. Ingesting many maps into one store? Concatenate
+  the rows and let `repo:ns:` be the lookup key — collisions become
+  impossible without renaming anything.
 - **Never union the corpus "to be thorough."** Searching every repo at once
   is how unrelated code lands in the context window and crowds out the
   answer. If a task genuinely spans services, run one scoped search per

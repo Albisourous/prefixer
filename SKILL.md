@@ -7,7 +7,7 @@ description: |
   hits, or when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
 allowed-tools:
   - read
   - grep
@@ -96,12 +96,25 @@ cut it.
 
 ```markdown
 # namespaces
+repo: acme-payments
+
 | prefix | scope              | contains                    |
 |--------|--------------------|-----------------------------|
 | api:   | src/api/**         | REST handlers, routes       |
 | auth:  | src/auth/**        | login, sessions, tokens     |
 | test:  | tests/**, **/*.test.* | suites, fixtures         |
 ```
+
+The `repo:` header is this codebase's unique qualifier (from the git
+remote) — it makes every prefix globally unique when an org runs many
+codebases: `acme-payments:auth:` can never collide with
+`checkout-service:auth:`.
+
+**Names are derived, not declared.** Prefixes and `contains` text come from
+the codebase's own vocabulary — directory names, the dominant terms in the
+files a row scopes — never from categories you invent. Derived names track
+the repo as it evolves; invented ones drift. The scaffold does this for
+you: fix what it gets wrong, keep what it got right.
 
 Format details and maps for other repo shapes: `references/namespaces.md`.
 
@@ -115,8 +128,11 @@ loaded it.
 
 **Many codebases:** the same trick stacks. An org-level map picks the
 codebase (`pay: services/payments/**`), the repo map picks the namespace
-inside it. Never union every repo into one search — that is the root-grep
-failure at org scale. See `references/namespaces.md`.
+inside it. Each map's `repo:` header keeps prefixes unique across
+codebases — forty services can all have an `auth/` because a qualified tag
+`payments:auth:` names exactly one. Never union every repo into one search
+— that is the root-grep failure at org scale. See
+`references/namespaces.md`.
 
 ## B. Search scoping
 
