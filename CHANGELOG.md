@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0] - 2026-10-26
+
+Nested namespaces and zero-TODO scaffolds — sub-teams inside a codebase.
+
+- **Sub-namespaces.** The scaffold descends a second level where a child
+  holds sub-teams (`services/payments/{checkout,refunds}`) and emits
+  indented rows that compose multi-level tags: `payments:checkout:`.
+  Uniqueness is per parent level, so `checkout:` can live under both
+  `payments:` and `orders:` without a composite name.
+- **Zero-TODO drafts.** Empty dirs are skipped instead of mapped; prefix
+  derivation always lands on a real name (short name, distinguishing
+  segment, dominant file token, full name); `contains` falls back to real
+  file names. Same-parent collisions qualify as `parent-name:`.
+- New `scripts/test_scaffold.sh` — fixture test covering repo slugs,
+  nested rows, name collisions, generated-dir and empty-dir skips;
+  wired into the validate workflow.
+
 ## [0.4.0] - 2026-10-26
 
 Derived prefixes and org-unique maps — built for the many-codebases case.

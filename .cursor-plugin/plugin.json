@@ -1,7 +1,7 @@
 {
   "name": "prefixer",
   "description": "Give agents a namespace map of a codebase so searches start scoped instead of broad.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "author": {
     "name": "Albisourous",
     "url": "https://github.com/Albisourous"

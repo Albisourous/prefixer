@@ -18,9 +18,17 @@ repo: acme-payments
 | db:    | src/db/**, migrations/ | schema, queries, migrations  |
 | test:  | tests/**, **/*.test.*  | suites, fixtures             |
 | docs:  | docs/**, *.md          | documentation                |
+|   api-docs: | docs/api/**       | endpoint reference           |
 | inf:   | infra/**, .github/**   | deploy, CI, config           |
 | scr:   | scripts/**             | one-off tooling, maintenance |
 ```
+
+Indented rows are **sub-namespaces**: they belong to the row above and
+compose multi-level tags — `docs:api-docs:` — for sub-teams inside a
+module or packages inside a service. A prefix only needs to be unique
+within its parent level: `checkout:` can sit under both `payments:` and
+`orders:` because `payments:checkout:` and `orders:checkout:` are already
+different tags. Empty dirs are skipped rather than mapped.
 
 - `repo`: one line under the title — this codebase's unique qualifier,
   derived from the git remote (or directory name when there is none). It is
@@ -103,8 +111,9 @@ scan is the root-grep problem multiplied by every codebase in reach.
   prefixes to codebases: `pay: services/payments/**`,
   `web: apps/portal/**`. Search picks the codebase first, then the
   namespace inside it.
-- **Two-level tags.** Results read `pay:api:src/refunds.ts:42` — codebase,
-  then namespace, then path. Two colons, no ambiguity.
+- **Multi-level tags.** Results read `pay:api:src/refunds.ts:42` —
+  codebase, then namespace (itself possibly nested), then path. The depth
+  matches the map's nesting; there is always one colon per level.
 - **`repo:` makes prefixes unique.** Namespace names repeat across
   codebases by nature — every service has an `auth/` and an `api/`. The
   `repo:` header in each map qualifies them: `payments:auth:` and

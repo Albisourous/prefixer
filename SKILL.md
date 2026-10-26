@@ -7,7 +7,7 @@ description: |
   hits, or when results keep landing in unrelated parts of the tree.
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
 allowed-tools:
   - read
   - grep
@@ -102,6 +102,7 @@ repo: acme-payments
 |--------|--------------------|-----------------------------|
 | api:   | src/api/**         | REST handlers, routes       |
 | auth:  | src/auth/**        | login, sessions, tokens     |
+|   sso: | src/auth/sso/**    | SSO sub-team area           |
 | test:  | tests/**, **/*.test.* | suites, fixtures         |
 ```
 
@@ -109,6 +110,11 @@ The `repo:` header is this codebase's unique qualifier (from the git
 remote) — it makes every prefix globally unique when an org runs many
 codebases: `acme-payments:auth:` can never collide with
 `checkout-service:auth:`.
+
+Rows nest: an indented row belongs to the namespace above it, for
+sub-teams inside a module or packages inside a service. The tag composes
+— `auth:sso:` — so the same name under two parents stays distinct
+(`orders:checkout:` vs `payments:checkout:`).
 
 **Names are derived, not declared.** Prefixes and `contains` text come from
 the codebase's own vocabulary — directory names, the dominant terms in the

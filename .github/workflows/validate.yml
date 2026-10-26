@@ -6,3 +6,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/validate-package.py
+      - run: bash scripts/test_scaffold.sh
