@@ -80,7 +80,10 @@ _px_list_files() {
     # deleted-but-tracked files are still in the index; drop them
     # one tagged stream, not NR==FNR: an empty first input would make
     # awk treat the whole second input as the exclusion set
+    # submodule gitlinks (mode 160000) are another repo, an empty dir here
     { git ls-files -z -d 2>/dev/null | tr '\0' '\n' | sed 's/^/D /'
+      git ls-files -z -s 2>/dev/null | tr '\0' '\n' |
+        awk '$1 == "160000" { sub(/^[^\t]*\t/, ""); print "D " $0 }'
       git ls-files -z -co --exclude-standard 2>/dev/null | tr '\0' '\n' | sed 's/^/F /'; } |
       awk '{ k = substr($0, 1, 1); p = substr($0, 3) }
         k == "D" { gone[p]; next } p != "" && !(p in gone) { print p }' 

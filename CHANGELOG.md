@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.1] - 2026-10-28
+
+Scaffold fixes from a second real-repo pass. Generated maps for
+KiroCrew, rysolv, ray-tracer, and RoBall3D now lint with 0 warnings.
+
+- **Submodules stay out of the index.** A git submodule (gitlink, mode
+  160000) is another repo and an empty dir in this one. It no longer
+  counts as an uncovered top dir.
+- **The `misc:` row holds up to 24 dirs** (was 12), so mid-size repos
+  no longer push dirs into the `unmapped:` footer.
+- **Cleaner contains cells.** Text is cut at the first sentence or at a
+  word boundary with `...`, never mid-word or mid-character. Section
+  banners (`== Foo ==`) and commented-out code are skipped as
+  descriptions. Test dirs read "tests and fixtures" instead of one
+  test case's comment. C-family type names and include guards no
+  longer show up as exports.
+
 ## [1.1.0] - 2026-10-28
 
 Real-repo pass: the scaffold and search now hold up on 1,000 to 6,000
