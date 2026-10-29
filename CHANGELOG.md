@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.1.0] - 2026-10-28
+
+Real-repo pass: the scaffold and search now hold up on 1,000 to 6,000
+file codebases, not just fixtures. On a 6,000-file repo a broad
+`search.sh kiro: import` dropped from about 338k tokens to under 1k.
+
+- **Search output is budgeted.** `search.sh` prints at most 40 hits
+  (`--max N`, `--all`, env `PREFIXER_MAX_HITS`), cuts lines past 240
+  chars, and summarizes the rest by dir so the next call can narrow.
+  `-l` lists files by hit count; `-w` and `-F` pass through to grep.
+  The metrics line gains `shown`, and `est_tokens` is what printed.
+- **Git-aware file index.** `lib_scope.sh` lists files once per run
+  from `git ls-files` (tracked plus untracked-not-ignored), falling
+  back to `find` outside git. Scopes, widen-to-root, and coverage
+  checks all read it, so `.gitignore`d output never reaches a search
+  and no scope runs its own `find`.
+- **Size-weighted scaffold.** `init_namespaces.sh` weighs every dir by
+  the text files a grep would read, then gives rows to the heaviest
+  dirs up to three levels deep. A big package gets child rows instead
+  of one broad scope, single-child chains collapse (`src/pkg/` maps as
+  `pkg:`), and container dirs (`src/`, `services/`, `packages/`) keep
+  their children as top-level tags.
+- **No silent coverage holes.** Top dirs that miss the row cap share
+  one `misc:` row; the `unmapped:` footer only lists what did not fit
+  there, capped at 8 names.
+- **Better contains cells.** Each row reports its file count and the
+  biggest subdirs without a row. Descriptions also come from the dir's
+  own README or manifest, agent-doc lines stop at the next path, and
+  symbols are sampled from source files only.
+- **Tighter synthetic rows.** Root files compress to `*.ext` groups,
+  lockfiles stay out, and jumbo-file rows only name source files that
+  are not tests.
+
 ## [1.0.0] - 2026-10-26
 
 First stable release. The skill, scripts, spec, and eval harness from

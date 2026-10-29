@@ -215,10 +215,14 @@ agents/openai.yaml        OpenAI-compatible agent display data
    session can read instead of scanning the tree. Names are derived from the
    codebase's own vocabulary, never a hardcoded wordlist. Each map carries a
    `repo:` qualifier so prefixes stay unique across many codebases, and
-   rows can nest for sub-teams (`payments:checkout:`).
+   rows can nest for sub-teams (`payments:checkout:`). The scaffold gives
+   rows to the biggest dirs by file weight at any depth, so a 1,000-file
+   package gets child rows instead of one broad scope.
 2. **Searches scoped first**, mechanically, not by discipline:
    `search.sh <ns> <pattern>` resolves the tag, greps inside it, widens one
-   level on a miss, and logs the line. `install_hook.sh` injects the map at
+   level on a miss, and logs the line. Output is capped at 40 hits (the
+   rest summarized by dir, `-l` for files only), and `.gitignore`d files
+   are never searched. `install_hook.sh` injects the map at
    session start so the discipline needs no remembering.
 3. **Measures the delta and closes the loop**: baseline first, log per
    task, report savings. Then `suggest_map.sh` reads the log and proposes

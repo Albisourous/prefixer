@@ -329,13 +329,14 @@ check "failed probe records exit"    '"exit":127' "$repo/.prefixer/metrics.jsonl
 # --- scaffold truncation at the row cap says so, with names
 # (issue #20) ---
 wide="$tmp/wide"; mkdir -p "$wide"
-for i in $(seq 1 15); do mkdir -p "$wide/team$i"; echo x > "$wide/team$i/f.ts"; done
+for i in $(seq 1 30); do mkdir -p "$wide/team$i"; echo x > "$wide/team$i/f.ts"; done
 out="$(bash "$here/init_namespaces.sh" "$wide" 2>&1)"
 case "$out" in
   *"unmapped"*) echo "ok   row cap notes unmapped dirs" ;;
   *) echo "FAIL row cap notes unmapped dirs"; fail=1 ;;
 esac
 check "unmapped note lands in map"   '^unmapped:' "$wide/.prefixer/namespaces.md"
+check "leftover dirs share a misc row" '^| misc: | team[0-9]*/\*\*, team' "$wide/.prefixer/namespaces.md"
 
 # --- a mostly-binary dir is marked names-only — a content grep there
 # is noise (issue #16) ---
@@ -517,6 +518,44 @@ case "$out" in
   *) echo "ok   widened search skips .prefixer" ;;
 esac
 
+# --- search.sh output budget: cap, line cut, -l, git-aware scopes ------
+cap="$tmp/cap"; mkdir -p "$cap/src/big" "$cap/.prefixer"
+for i in $(seq 1 60); do echo "capword line $i"; done > "$cap/src/big/many.ts"
+printf 'capword %0300d\n' 0 > "$cap/src/big/long.ts"
+cat > "$cap/.prefixer/namespaces.md" <<'EOF'
+# namespaces
+repo: cap
+
+| prefix | scope | contains |
+|--------|-------|----------|
+| big: | src/big/** | many hits |
+EOF
+out="$(cd "$cap" && bash "$here/search.sh" --no-log big capword 2>/dev/null)"
+[ "$(printf '%s\n' "$out" | grep -c .)" -eq 40 ] && echo "ok   hits capped at 40 by default" ||
+  { echo "FAIL hits capped at 40 by default"; fail=1; }
+err="$(cd "$cap" && bash "$here/search.sh" --no-log big capword 2>&1 >/dev/null)"
+case "$err" in
+  *"21 more hits not shown"*"src/big/"*) echo "ok   overflow summarized by dir" ;;
+  *) echo "FAIL overflow summarized by dir"; fail=1 ;;
+esac
+out="$(cd "$cap" && bash "$here/search.sh" --no-log --all big capword 2>/dev/null)"
+[ "$(printf '%s\n' "$out" | grep -c .)" -eq 61 ] && echo "ok   --all lifts the cap" ||
+  { echo "FAIL --all lifts the cap"; fail=1; }
+case "$out" in
+  *"[...]"*) echo "ok   long lines cut" ;;
+  *) echo "FAIL long lines cut"; fail=1 ;;
+esac
+out="$(cd "$cap" && bash "$here/search.sh" --no-log -l big capword 2>/dev/null)"
+case "$out" in
+  "src/big/many.ts:60"*"src/big/long.ts:1") echo "ok   -l lists files by hit count" ;;
+  *) echo "FAIL -l lists files by hit count"; fail=1 ;;
+esac
+( cd "$cap" && git init -q && printf 'src/big/gen/\n' > .gitignore )
+mkdir -p "$cap/src/big/gen"; echo "ignoredword" > "$cap/src/big/gen/out.ts"
+out="$(cd "$cap" && bash "$here/search.sh" --no-log big ignoredword 2>/dev/null)" || true
+[ -z "$out" ] && echo "ok   gitignored files stay out of scope and widen" ||
+  { echo "FAIL gitignored files stay out of scope and widen"; fail=1; }
+
 # --- suggest_map.sh: log + tree → proposed rows -----------------------
 sg="$tmp/suggest"; mkdir -p "$sg/src/api" "$sg/src/core" "$sg/.prefixer"
 echo x > "$sg/src/api/a.ts"; echo 'engine loop' > "$sg/src/core/engine.ts"
@@ -671,7 +710,11 @@ bash "$here/init_namespaces.sh" "$budg" >/dev/null 2>&1
 bmap="$budg/.prefixer/namespaces.md"
 check "child rows survive a full top list" '| core: | src/core/\*\*' "$bmap"
 check "second child row survives"      '| game: | src/game/\*\*' "$bmap"
-check "budget loss still reported"     '^unmapped:' "$bmap"
+check "budget loss lands in misc row" '^| misc: | .*ll/\*\*' "$bmap"
+case "$(bash "$here/check_namespaces.sh" "$budg" 2>&1)" in
+  *uncovered*) echo "FAIL misc row leaves no top dir uncovered"; fail=1 ;;
+  *) echo "ok   misc row leaves no top dir uncovered" ;;
+esac
 
 # --- hardcoded boot row dedupes against a real boot/ dir (issue #52) ---
 bootr="$tmp/bootrepo"; mkdir -p "$bootr/boot" "$bootr/src"

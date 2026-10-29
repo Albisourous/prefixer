@@ -27,6 +27,9 @@ existing lines.
 3. A pipe table of rows, each `| prefix | scope | contains |`.
 4. Optional footer line: `unmapped: <dir>, <dir>, … (reason)`: names
    the directories a row cap dropped. Absent means nothing was dropped.
+   The scaffold first folds leftover top dirs into one shared row
+   (`| misc: | docs/**, site/** | ... |`), so the footer only lists
+   what did not fit there.
 
 ## Rows
 
