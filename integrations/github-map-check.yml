@@ -27,6 +27,6 @@ jobs:
           # not vendored: pin a release tag (never float main in CI)
           mkdir -p /tmp/pfx
           for s in check_namespaces.sh lib_scope.sh; do
-            curl -fsSL "https://raw.githubusercontent.com/Albisourous/prefixer/v1.1.1/scripts/$s" -o "/tmp/pfx/$s"
+            curl -fsSL "https://raw.githubusercontent.com/Albisourous/prefixer/v1.1.2/scripts/$s" -o "/tmp/pfx/$s"
           done
           bash /tmp/pfx/check_namespaces.sh .

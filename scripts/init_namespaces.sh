@@ -207,14 +207,20 @@ desc_for() { # name, rel
   done
   line="$(dir_blurb "$rel")"
   [ -n "$line" ] && { printf '%s' "$line"; return; }
-  # a test file's first comment describes one case, never the suite
-  case "$(printf '%s' "$name" | tr 'A-Z' 'a-z')" in
-    test|tests|__tests__|spec|specs|e2e) printf 'tests and fixtures'; return ;;
-  esac
   # text files under the dir, shallow first so the dir's own files speak
   # before deep leaves; line-wise so a spaced path stays one name
   list="$(printf '%s\n' "$textf" | awk -v p="$rel/" 'index($0, p) == 1 && $0 !~ /\.min\./ {
       x = $0; print gsub(/\//, "/", x) "\t" $0 }' | sort -t "$(printf '\t')" -k1,1n -k2,2 | cut -f2- | head -200)"
+  # a test file's first comment describes one case, never the suite:
+  # name the suite by what its files test (test_refund.py -> refund)
+  case "$(printf '%s' "$name" | tr 'A-Z' 'a-z')" in
+    test|tests|__tests__|spec|specs|e2e)
+      names="$(printf '%s\n' "$list" | sed 's|.*/||; s/\.[^.]*$//' |
+        grep -vxE '|conftest|__init__|index|setup|helpers?|utils?|fixtures?|mocks?' |
+        sed -E 's/[._-]?(test|spec)s?$//; s/^(test|spec)s?[._-]?//' |
+        awk 'NF' | sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
+      [ -n "$names" ] && { printf 'tests for %s' "$names"; return; } ;;
+  esac
   pref="$(printf '%s\n' "$list" | awk -v n="$(printf '%s' "$name" | tr 'A-Z' 'a-z')" '
       NF { b = $0; sub(/.*\//, "", b); lb = tolower(b)
            if (index(lb, n) || lb ~ /^(index|main|mod|lib|init|__init__)\./) print }' | head -6)"
@@ -252,10 +258,17 @@ listed() { printf '%s' "$1" | grep -Fxq -- "$2"; }
 cell() { tr -d '|\r' | tr '\n' ' ' | sed 's/  */ /g; s/^ *//; s/ *$//'; }
 
 # keep a cell short without cutting a word: the first sentence if it
-# fits, else whole words up to the limit plus "..."
+# fits, else whole words up to the limit plus "...". A sentence ends at
+# . ! ? before a capital, never after an abbreviation (e.g. i.e. etc.)
 trim_desc() { # max chars
-  awk -v m="$1" '{ s = $0
-    if (match(s, /[.!?][[:space:]]/) && RSTART >= 20 && RSTART <= m) s = substr(s, 1, RSTART)
+  awk -v m="$1" '{ s = $0; t = s; off = 0
+    while (match(t, /[.!?][[:space:]]+[A-Z]/)) {
+      end = off + RSTART; w = substr(s, 1, end); sub(/^.*[[:space:](]/, "", w)
+      if (end > m) break
+      if (end >= 20 && tolower(w) !~ /^(e\.g|i\.e|etc|vs|cf|incl|approx|no|[a-z])\.$/) {
+        s = substr(s, 1, end); break }
+      off += RSTART; t = substr(t, RSTART + 1)
+    }
     if (length(s) > m) {
       s = substr(s, 1, m); sub(/[[:space:]]+[^[:space:]]*$/, "", s)
       sub(/[[:space:],;:(-]+$/, "", s); s = s "..."

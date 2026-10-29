@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.2] - 2026-10-28
+
+- **Sentence cuts respect abbreviations.** A contains cell is cut at a
+  sentence end only when `.`, `!`, or `?` comes before a capital and
+  does not close an abbreviation such as `e.g.`, `i.e.`, or `etc.`.
+- **Test dirs keep repo-specific descriptions.** Instead of a fixed
+  phrase, an undocumented test dir is named by what its files test
+  (`test_refund.py`, `checkout.spec.ts` give "tests for checkout,
+  refund"). The repo's own docs still win.
+
 ## [1.1.1] - 2026-10-28
 
 Scaffold fixes from a second real-repo pass. Generated maps for
