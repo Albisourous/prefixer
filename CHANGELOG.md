@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4] - 2026-10-28
+
+- **Test markers are stripped at both ends.** `test_refund.spec.ts`
+  gives "refund", not "test_refund".
+- **Acronym test names count.** `HTTPTest.java` gives "HTTP". A capital
+  `Test` marks a test file, so `Contest.java` is still skipped.
+
 ## [1.1.3] - 2026-10-28
 
 - **Test dir names come from test files only.** A suite is named by
