@@ -40,6 +40,7 @@ stop_re='^(index|main|mod|init|utils?|helpers?|common|shared|base|file|code|misc
 
 max_rows=12 rows=0
 # source extensions: what symbol sampling and jumbo rows look at
+MISC_MAX=24
 code_re='\.(c|cc|cpp|cxx|h|hh|hpp|hxx|m|mm|swift|kt|kts|java|scala|go|rs|py|rb|php|js|jsx|ts|tsx|mjs|cjs|vue|svelte|lua|luau|cs|fs|ex|exs|erl|hs|ml|clj|dart|jl|sh|bash|zsh|ps1|sql|pl|gd|zig|nim|sol|r)$'
 
 # --- inventory: one git-aware file list, split text vs binary ---------
@@ -117,6 +118,10 @@ doc_line() {
       sub(/^[[:space:]]*(\/\/+|--+|#+|\*+|\/\*+|"""+|;+)[[:space:]]*/, "", line)
       sub(/[[:space:]]*(\*+\/|"""+)[[:space:]]*$/, "", line)
       low = tolower(line)
+      # commented-out code (x = f();  set(FLAGS ...)) is not prose
+      if (line ~ /[;{}]$/ || line ~ /^[A-Za-z_][A-Za-z0-9_.]*\(/) next
+      # section banners (== Foo ==, ── Foo ──) label a block, not the file
+      if (line ~ /^[^A-Za-z0-9[:space:]`"\x27(\[@][^A-Za-z0-9[:space:]]/) next
       if (low ~ /copyright|licen[cs]e|spdx|vim:|coding[:=]|@file|@brief|@author|generated|do not edit/) next
       an = gsub(/[A-Za-z0-9]/, "&", line)
       if (split(line, w, /[[:space:]]+/) >= 3 && length(line) >= 15 &&
@@ -131,6 +136,7 @@ syms() {
     grep -hEo '(export|pub)[[:space:]]+(default[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*' "$@"
   } 2>/dev/null | sed -E 's/^.*[[:space:]]//' |
     grep -vE '^(default|async|function|def|func|fn|sub|class|struct|interface|enum|trait|const|let|var|type|impl|export|pub)$' |
+    grep -vE '^(void|char|short|int|long|float|double|bool|auto|signed|unsigned|static|inline|extern|volatile|size_t|std|_*[A-Z0-9_]+_H_*|.{1,2})$' |
     awk '!seen[$0]++' | head -3 | paste -sd, - | sed 's/,/, /g'
 }
 
@@ -201,6 +207,10 @@ desc_for() { # name, rel
   done
   line="$(dir_blurb "$rel")"
   [ -n "$line" ] && { printf '%s' "$line"; return; }
+  # a test file's first comment describes one case, never the suite
+  case "$(printf '%s' "$name" | tr 'A-Z' 'a-z')" in
+    test|tests|__tests__|spec|specs|e2e) printf 'tests and fixtures'; return ;;
+  esac
   # text files under the dir, shallow first so the dir's own files speak
   # before deep leaves; line-wise so a spaced path stays one name
   list="$(printf '%s\n' "$textf" | awk -v p="$rel/" 'index($0, p) == 1 && $0 !~ /\.min\./ {
@@ -210,7 +220,7 @@ desc_for() { # name, rel
            if (index(lb, n) || lb ~ /^(index|main|mod|lib|init|__init__)\./) print }' | head -6)"
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    sample="$(doc_line "$f" | cut -c1-72)"
+    sample="$(doc_line "$f")"
     if [ -n "$sample" ]; then printf '%s' "$sample"; return; fi
   done <<EOF
 $pref
@@ -224,7 +234,7 @@ EOF
   if [ -n "$symtext" ]; then printf 'exports %s' "$symtext"; return; fi
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    sample="$(doc_line "$f" | cut -c1-72)"
+    sample="$(doc_line "$f")"
     if [ -n "$sample" ]; then printf '%s' "$sample"; return; fi
   done <<EOF
 $(printf '%s\n' "$list" | head -6)
@@ -240,6 +250,18 @@ EOF
 listed() { printf '%s' "$1" | grep -Fxq -- "$2"; }
 
 cell() { tr -d '|\r' | tr '\n' ' ' | sed 's/  */ /g; s/^ *//; s/ *$//'; }
+
+# keep a cell short without cutting a word: the first sentence if it
+# fits, else whole words up to the limit plus "..."
+trim_desc() { # max chars
+  awk -v m="$1" '{ s = $0
+    if (match(s, /[.!?][[:space:]]/) && RSTART >= 20 && RSTART <= m) s = substr(s, 1, RSTART)
+    if (length(s) > m) {
+      s = substr(s, 1, m); sub(/[[:space:]]+[^[:space:]]*$/, "", s)
+      sub(/[[:space:],;:(-]+$/, "", s); s = s "..."
+    }
+    print s; exit }'
+}
 
 used_pfx="" ptag=()
 emit() { # depth, rel
@@ -275,7 +297,7 @@ EOF
     printf '| %s%s: | %s/** | names only, binary assets: %s |\n' "$indent" "$p" "$rel" "${names:-files}"
     return
   fi
-  cont="$(desc_for "$name" "$rel" | cell | cut -c1-80)"
+  cont="$(desc_for "$name" "$rel" | cell | trim_desc 80)"
   # size and the biggest subdirs without a row: what a search here will
   # cost, and where inside it to look next
   if [ "$n" -ge 10 ]; then
@@ -394,8 +416,8 @@ unmapped="$(printf '%s\n' "$plan" | awk -F'\t' '$1 == "U" { print $2 }')"
     emit "$lvl" "$rel"
   done <<< "$plan"
 
-  # small top dirs without a row share one row, biggest first; past 12
-  # scopes the rest go to the unmapped footer
+  # small top dirs without a row share one row, biggest first; past
+  # MISC_MAX scopes the rest go to the unmapped footer
   rest=""
   if [ -n "$unmapped" ]; then
     mp=misc
@@ -403,12 +425,12 @@ unmapped="$(printf '%s\n' "$plan" | awk -F'\t' '$1 == "U" { print $2 }')"
     listed "$used_pfx" "top:$mp" && mp=todo-misc
     used_pfx="$used_pfx
 top:$mp"
-    mscope="$(printf '%s\n' "$unmapped" | head -12 | sed 's|$|/**|' | paste -sd, - | sed 's/,/, /g')"
+    mscope="$(printf '%s\n' "$unmapped" | head -"$MISC_MAX" | sed 's|$|/**|' | paste -sd, - | sed 's/,/, /g')"
     mn=0
     while IFS= read -r u; do
       [ -n "$u" ] && mn=$((mn + $(wcol "$u" 2) + $(wcol "$u" 3)))
-    done <<< "$(printf '%s\n' "$unmapped" | head -12)"
-    rest="$(printf '%s\n' "$unmapped" | sed -n '13,$p')"
+    done <<< "$(printf '%s\n' "$unmapped" | head -"$MISC_MAX")"
+    rest="$(printf '%s\n' "$unmapped" | sed -n "$((MISC_MAX + 1)),\$p")"
     rows=$((rows + 1))
     printf '| %s: | %s | smaller top-level dirs, no row of their own (%s files): search one by path |\n' "$mp" "$mscope" "$mn"
   fi

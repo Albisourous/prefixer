@@ -329,7 +329,7 @@ check "failed probe records exit"    '"exit":127' "$repo/.prefixer/metrics.jsonl
 # --- scaffold truncation at the row cap says so, with names
 # (issue #20) ---
 wide="$tmp/wide"; mkdir -p "$wide"
-for i in $(seq 1 30); do mkdir -p "$wide/team$i"; echo x > "$wide/team$i/f.ts"; done
+for i in $(seq 1 50); do mkdir -p "$wide/team$i"; echo x > "$wide/team$i/f.ts"; done
 out="$(bash "$here/init_namespaces.sh" "$wide" 2>&1)"
 case "$out" in
   *"unmapped"*) echo "ok   row cap notes unmapped dirs" ;;
@@ -555,6 +555,20 @@ mkdir -p "$cap/src/big/gen"; echo "ignoredword" > "$cap/src/big/gen/out.ts"
 out="$(cd "$cap" && bash "$here/search.sh" --no-log big ignoredword 2>/dev/null)" || true
 [ -z "$out" ] && echo "ok   gitignored files stay out of scope and widen" ||
   { echo "FAIL gitignored files stay out of scope and widen"; fail=1; }
+sub="$tmp/sub"; mkdir -p "$sub/src/app" "$sub/third/lib"
+( cd "$sub" && git init -q &&
+  git update-index --add --cacheinfo "160000,$(printf '%040d' 1),third/lib" )
+for i in 1 2 3; do echo "// commented out(); " > "$sub/src/app/a$i.ts"; done
+printf '// == Section banner ==\n// set(FLAGS "-g")\n// Handles the app shell and the routing between every page in the product and the admin settings screens\n' \
+  > "$sub/src/app/app.ts"
+bash "$here/init_namespaces.sh" "$sub" >/dev/null 2>&1
+lint="$(bash "$here/check_namespaces.sh" "$sub" 2>&1)"
+case "$lint" in
+  *third*) echo "FAIL submodule gitlinks stay out of the index"; fail=1 ;;
+  *) echo "ok   submodule gitlinks stay out of the index" ;;
+esac
+check "banner and code comments skipped" 'Handles the app shell' "$sub/.prefixer/namespaces.md"
+check "long contains cut at a word" 'product and the\.\.\. |' "$sub/.prefixer/namespaces.md"
 
 # --- suggest_map.sh: log + tree → proposed rows -----------------------
 sg="$tmp/suggest"; mkdir -p "$sg/src/api" "$sg/src/core" "$sg/.prefixer"
