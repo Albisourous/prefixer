@@ -569,6 +569,12 @@ case "$lint" in
 esac
 check "banner and code comments skipped" 'Handles the app shell' "$sub/.prefixer/namespaces.md"
 check "long contains cut at a word" 'product and the\.\.\. |' "$sub/.prefixer/namespaces.md"
+ab="$tmp/abbr"; mkdir -p "$ab/src/tools" "$ab/tests"
+printf '// Shared developer tools, e.g. parsers for source files. More text follows here\n' > "$ab/src/tools/tools.ts"
+for t in refund_test.ts test_checkout.ts conftest.py; do echo "// one case" > "$ab/tests/$t"; done
+bash "$here/init_namespaces.sh" "$ab" >/dev/null 2>&1
+check "abbreviation is not a sentence end" 'e\.g\. parsers for source files\. |' "$ab/.prefixer/namespaces.md"
+check "test dir named by what it tests" 'tests for checkout, refund' "$ab/.prefixer/namespaces.md"
 
 # --- suggest_map.sh: log + tree → proposed rows -----------------------
 sg="$tmp/suggest"; mkdir -p "$sg/src/api" "$sg/src/core" "$sg/.prefixer"
