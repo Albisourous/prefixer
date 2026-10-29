@@ -11,25 +11,36 @@
 #   search.sh --paths auth        print the scope's resolved files/dirs
 #   search.sh --list              print every tag with its scope
 #
-# Every search logs one metrics.jsonl line (scope, hits, tokens,
-# first_try_hit; hit_dirs on a widened hit) — §4 to §8 of the skill run
-# themselves. Flags: --repo DIR, --no-widen, --no-log, -i.
+# Output is budgeted: at most --max hits print (default 40, env
+# PREFIXER_MAX_HITS), each cut to 240 chars; past the cap the rest is
+# summarized by dir so the next search can narrow instead of paging.
+#   search.sh -l auth expire      files with hit counts, not lines
+#
+# Every search logs one metrics.jsonl line (scope, hits, printed tokens,
+# first_try_hit; hit_dirs on a widened hit): §4 to §8 of the skill run
+# themselves. Flags: --repo DIR, --no-widen, --no-log, -i, -w, -F,
+# -l, --max N, --all (no cap).
 # Exit: 0 hits found, 1 none found even widened, 2 usage.
 set -uo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib_scope.sh"
 
-repo="" widen=1 nolog="" ign=""
+repo="" widen=1 nolog="" ign="" gflags=() files_mode=0
+max="${PREFIXER_MAX_HITS:-40}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo) repo="${2:?--repo needs a dir}"; shift ;;
     --no-widen) widen=0 ;;
     --no-log) nolog=1 ;;
     -i|--ignore-case) ign="-i" ;;
+    -w|-F) gflags+=("$1") ;;
+    -l|--files) files_mode=1 ;;
+    --max) max="${2:?--max needs a number}"; shift ;;
+    --all) max=0 ;;
     --scope|--paths|--list) mode="${1#--}" ;;
     --) shift; break ;;
-    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown flag: $1" >&2; exit 2 ;;
     *) break ;;
   esac
@@ -84,6 +95,7 @@ case "$scope" in
 esac
 
 cd "$root" || exit 2
+px_index
 
 case "$mode" in
   scope) printf '%s\n' "$scope"; exit 0 ;;
@@ -99,7 +111,8 @@ run_scoped() { # scope → hits on stdout
   local files
   files="$(scope_files "$1")"
   [ -n "$files" ] || return 0
-  printf '%s' "$files" | tr '\n' '\0' | xargs -0 grep -nIH $ign -- "$pat" 2>/dev/null
+  printf '%s' "$files" | tr '\n' '\0' |
+    xargs -0 grep -nIH $ign ${gflags[@]+"${gflags[@]}"} -- "$pat" 2>/dev/null
 }
 hits="$(run_scoped "$scope")"
 
@@ -118,21 +131,38 @@ else
       fi
     fi
     if [ -z "$hits" ]; then
-      # .prefixer is inside the shared exclude list: the log echoes
-      # every searched pattern, so a widened search would self-hit its
-      # own telemetry
-      excl="$(grep_excludes)"
-      hits="$(grep -rnIH $excl $ign -- "$pat" . 2>/dev/null | sed 's|^\./||')"
+      # the repo index: git-aware, generated dirs and .prefixer dropped
+      # (the log echoes every pattern, a widened search would self-hit)
+      hits="$(repo_files | tr '\n' '\0' |
+        xargs -0 grep -nIH $ign ${gflags[@]+"${gflags[@]}"} -- "$pat" 2>/dev/null)"
       [ -n "$hits" ] && { found_in="root"; level=""; }
     fi
   fi
 fi
 
-printf '%s\n' "$hits" | grep . || true
-
 n="$(printf '%s' "$hits" | grep -c . || true)"
-bytes="$(printf '%s' "$hits" | wc -c | tr -d ' ')"
+# what reaches the caller is the token cost: -l folds lines to files,
+# the cap and the line cut bound the rest
+if [ "$files_mode" -eq 1 ]; then
+  shown_txt="$(printf '%s\n' "$hits" | awk 'NF { f = $0; sub(/:[0-9]+:.*/, "", f)
+      c[f]++ } END { for (f in c) print c[f] "\t" f }' | sort -t "$(printf '\t')" -k1,1nr -k2,2 |
+    awk -F'\t' -v m="$max" '{ if (m > 0 && NR > m) { r++; next } print $2 ":" $1 }
+      END { if (r) print "(+" r " more files)" }')"
+else
+  shown_txt="$(printf '%s\n' "$hits" | awk -v m="$max" 'NF { if (m > 0 && ++k > m) exit
+      if (length($0) > 240) $0 = substr($0, 1, 240) " [...]"; print }')"
+fi
+[ -n "$shown_txt" ] && printf '%s\n' "$shown_txt"
+shown="$(printf '%s' "$shown_txt" | grep -c . || true)"
+bytes="$(printf '%s' "$shown_txt" | wc -c | tr -d ' ')"
 est=$((bytes / 4))
+if [ "$files_mode" -eq 0 ] && [ "$max" -gt 0 ] && [ "$n" -gt "$max" ]; then
+  dense="$(printf '%s\n' "$hits" | sed -n "$((max + 1)),\$p" | cut -d: -f1 |
+    awk '{ if (!sub(/\/[^\/]*$/, "")) $0 = "." } { c[$0]++ } END { for (d in c) print c[d] "\t" d }' |
+    sort -rn | head -5 | awk -F'\t' '{ printf "%s%s/:%s", sep, $2, $1; sep = ", " }')"
+  echo "$((n - max)) more hits not shown; densest: $dense" >&2
+  echo "narrow: a child tag (search.sh --list), -w, a sharper pattern; or -l / --all" >&2
+fi
 
 # where widened hits clustered — the map-gap signal a review (or
 # suggest_map.sh) can act on
@@ -147,9 +177,9 @@ fi
 first=true
 [ "$found_in" != "$tag" ] && first=false
 if [ "$found_in" = "$tag" ]; then
-  echo "searched ${tag}: → $n hits (~$est tokens)" >&2
+  echo "searched ${tag}: → $n hits, $shown shown (~$est tokens)" >&2
 elif [ -n "$found_in" ]; then
-  echo "miss in ${tag}:, widened to $found_in → $n hits (~$est tokens)" >&2
+  echo "miss in ${tag}:, widened to $found_in → $n hits, $shown shown (~$est tokens)" >&2
   [ -n "$hit_dirs" ] && echo "hits landed under: $hit_dirs, possible map gap" >&2
 else
   msg="miss in ${tag}:"
@@ -165,9 +195,9 @@ if [ -z "$nolog" ]; then
   extra=""
   [ "$found_in" != "$tag" ] && extra=",\"widened_to\":\"${found_in:-none}\""
   [ -n "$hit_dirs" ] && extra="$extra,\"hit_dirs\":\"$(esc "$hit_dirs")\""
-  printf '{"ts":"%s","task":"scoped-search","ns":"%s","pattern":"%s","scope":"%s","searches":1,"hits":%s,"est_tokens":%s,"first_try_hit":%s%s}\n' \
+  printf '{"ts":"%s","task":"scoped-search","ns":"%s","pattern":"%s","scope":"%s","searches":1,"hits":%s,"shown":%s,"est_tokens":%s,"first_try_hit":%s%s}\n' \
     "$(date -u +%FT%TZ)" "$(esc "$tag")" "$(esc "$pat")" "$(esc "$scope")" \
-    "$n" "$est" "$first" "$extra" >> "$root/.prefixer/metrics.jsonl"
+    "$n" "$shown" "$est" "$first" "$extra" >> "$root/.prefixer/metrics.jsonl"
 fi
 
 [ -n "$hits" ] && exit 0

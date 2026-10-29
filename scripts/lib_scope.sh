@@ -69,15 +69,53 @@ glob_re() {
     -e 's|@@/|(.*/)?|g' -e 's/@@/.*/g' -e 's/^/^/' -e 's/$/$/'
 }
 
+# every file a search may touch, repo-relative, one per line (cwd = repo
+# root). In a git work tree that is tracked plus untracked-not-ignored
+# files, the set ripgrep would search: .gitignore'd build output, caches,
+# and local junk never reach a scope. Outside git, a find with the
+# generated-dir prune. Both drop the shared skip list. px_index caches the
+# list for the calling shell; scripts call it once after cd'ing to root.
+_px_list_files() {
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # deleted-but-tracked files are still in the index; drop them
+    # one tagged stream, not NR==FNR: an empty first input would make
+    # awk treat the whole second input as the exclusion set
+    { git ls-files -z -d 2>/dev/null | tr '\0' '\n' | sed 's/^/D /'
+      git ls-files -z -co --exclude-standard 2>/dev/null | tr '\0' '\n' | sed 's/^/F /'; } |
+      awk '{ k = substr($0, 1, 1); p = substr($0, 3) }
+        k == "D" { gone[p]; next } p != "" && !(p in gone) { print p }' 
+  else
+    find . "${GEN_PRUNE[@]}" -o -type f -print 2>/dev/null | sed 's|^\./||'
+  fi | awk -v skip="$PREFIXER_SKIP" '
+    BEGIN { n = split(skip, s, " "); for (i = 1; i <= n; i++) bad[s[i]] }
+    NF {
+      k = split($0, c, "/")
+      for (i = 1; i < k; i++) if ((c[i] in bad) || c[i] ~ /-out$/) next
+      print
+    }'
+}
+px_index() { _PX_FILES="$(_px_list_files)"; _PX_INDEXED=1; }
+repo_files() {
+  [ -n "${_PX_INDEXED:-}" ] || px_index
+  [ -n "$_PX_FILES" ] && printf '%s\n' "$_PX_FILES"
+  return 0
+}
+
+# repo_files plus every ancestor dir: what a scope token can name
+repo_paths() {
+  repo_files | awk '{ print; p = $0
+    while (sub(/\/[^\/]*$/, "", p)) { if (p in s) break; s[p]; print p } }'
+}
+
 # real paths a glob token resolves to under cwd — run from repo root.
-# Generated dirs are pruned first: a glob like eval/**/*.ts would
-# otherwise "resolve" into vendored clones living under eval/.work
-match_scope() { find . "${GEN_PRUNE[@]}" -o -print | sed 's|^\./||' | grep -E "$(glob_re "$1")" 2>/dev/null; }
+# Generated and ignored paths are never listed: a glob like eval/**/*.ts
+# must not "resolve" into vendored clones living under eval/.work
+match_scope() { repo_paths | grep -E "$(glob_re "$1")" 2>/dev/null; }
 
 # does a scope token resolve to at least one real path under .?
-# grep -c, not -q: -q exits on first match, SIGPIPEs find, and pipefail
-# then reports failure for a successful match
-resolve() { find . "${GEN_PRUNE[@]}" -o -print | sed 's|^\./||' | grep -cE "$(glob_re "$1")" >/dev/null 2>&1; }
+# grep -c, not -q: -q exits on first match, SIGPIPEs the producer, and
+# pipefail then reports failure for a successful match
+resolve() { repo_paths | grep -cE "$(glob_re "$1")" >/dev/null 2>&1; }
 
 # one line per map row: composed tag, leaf name, scope — tab-separated.
 # Ancestor tags rebuild from indentation: rows arrive depth-first, so the
@@ -119,34 +157,22 @@ tag_scope() { # want-tag, map → scope
     }' "$2"
 }
 
-# deduped file list a scope covers: globs resolve, dirs expand to files,
-# overlapping globs and dir+file pairs collapse — grepping the same file
-# twice would double-count hits
+# deduped file list a scope covers: every token (literal, glob, brace
+# arm) matches against repo_paths, matched dirs expand to the files
+# under them, overlaps collapse. One pass over the index, no find per
+# token; grepping the same file twice would double-count hits
 scope_files() { # scope → file list, one per line (cwd = repo root)
-  local tok paths="" p
+  local tok args=()
   while IFS= read -r tok; do
-    [ -z "$tok" ] && continue
-    # only a literal trailing /** collapses to its dir — the glob pattern
-    # */** would match any token containing / and shred src/*.ts or /*.md
-    case "$tok" in *'/**') tok="${tok%\*\*}" ;; esac
-    if printf '%s' "$tok" | grep -q '[*?\[]'; then
-      while IFS= read -r f; do
-        [ -n "$f" ] && paths="$paths$f
-"
-      done < <(match_scope "$tok")
-    elif [ -e "$tok" ]; then
-      paths="$paths$tok
-"
-    fi
+    [ -n "$tok" ] && args+=(-e "$(glob_re "$tok")")
   done <<< "$(expand_scope "$1")"
-  while IFS= read -r p; do
-    [ -z "$p" ] && continue
-    if [ -d "$p" ]; then
-      find "$p" "${GEN_PRUNE[@]}" -o -type f -not -name '.*' -print
-    else
-      printf '%s\n' "$p"
-    fi
-  done <<< "$paths" | sort -u
+  [ "${#args[@]}" -gt 0 ] || return 0
+  { repo_paths | grep -E "${args[@]}" 2>/dev/null | sed 's/^/M /'
+    repo_files | sed 's/^/F /'; } |
+    awk '{ k = substr($0, 1, 1); f = substr($0, 3) }
+      k == "M" { m[f]; next }
+      { p = f; if (p in m) { print f; next }
+        while (sub(/\/[^\/]*$/, "", p)) if (p in m) { print f; next } }' | sort -u
 }
 
 # --exclude-dir args for the counterfactual root grep: the generated,
