@@ -212,13 +212,20 @@ desc_for() { # name, rel
   list="$(printf '%s\n' "$textf" | awk -v p="$rel/" 'index($0, p) == 1 && $0 !~ /\.min\./ {
       x = $0; print gsub(/\//, "/", x) "\t" $0 }' | sort -t "$(printf '\t')" -k1,1n -k2,2 | cut -f2- | head -200)"
   # a test file's first comment describes one case, never the suite:
-  # name the suite by what its files test (test_refund.py -> refund)
+  # name the suite by what its test files cover (test_refund.py,
+  # refund.spec.ts, RefundTest.java -> refund); other files never count
   case "$(printf '%s' "$name" | tr 'A-Z' 'a-z')" in
     test|tests|__tests__|spec|specs|e2e)
-      names="$(printf '%s\n' "$list" | sed 's|.*/||; s/\.[^.]*$//' |
-        grep -vxE '|conftest|__init__|index|setup|helpers?|utils?|fixtures?|mocks?' |
-        sed -E 's/[._-]?(test|spec)s?$//; s/^(test|spec)s?[._-]?//' |
-        awk 'NF' | sort -u | head -3 | paste -sd, - | sed 's/,/, /g')"
+      names="$(printf '%s\n' "$list" | awk '{
+          b = $0; sub(/.*\//, "", b); sub(/\.[^.]*$/, "", b); l = tolower(b)
+          if (match(l, /[._-](test|spec)s?$/)) n = substr(b, 1, RSTART - 1)
+          else if (match(l, /^(test|spec)s?[._-]/)) n = substr(b, RLENGTH + 1)
+          else if (b ~ /[a-z0-9](Test|Spec)s?$/) { n = b; sub(/(Test|Spec)s?$/, "", n) }
+          else if (b ~ /^Tests?[A-Z]/) { n = b; sub(/^Tests?/, "", n) }
+          else next
+          sub(/\..*/, "", n)
+          if (n == "" || tolower(n) ~ /^(conftest|__init__|index|setup|helpers?|utils?|fixtures?|mocks?|common|base|support)$/) next
+          print n }' | sort -f | awk '!seen[tolower($0)]++' | head -3 | paste -sd, - | sed 's/,/, /g')"
       [ -n "$names" ] && { printf 'tests for %s' "$names"; return; } ;;
   esac
   pref="$(printf '%s\n' "$list" | awk -v n="$(printf '%s' "$name" | tr 'A-Z' 'a-z')" '

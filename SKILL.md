@@ -12,7 +12,7 @@ license: MIT
 compatibility: Requires bash and standard POSIX tools (grep, find, sed,
   awk); scripts/visualize.py also needs Python 3. No network access.
 metadata:
-  version: "1.1.2"
+  version: "1.1.3"
 allowed-tools:
   - read
   - grep
