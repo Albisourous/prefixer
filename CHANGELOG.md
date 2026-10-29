@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.3] - 2026-10-28
+
+- **Test dir names come from test files only.** A suite is named by
+  files that look like tests (`test_refund.py`, `refund.spec.ts`,
+  `RefundTest.java`). A README, fixture data, or `contest.py` no longer
+  shows up as a tested feature.
+- **Generic names are dropped after the test marker is stripped.**
+  `test_helpers.py` no longer adds "helpers" to the cell.
+- **"test" is stripped only after a separator.** `contest_test.py`
+  gives "contest", not "con". A dotted name keeps its first part
+  (`AboutPanel.tabs.test.tsx` gives "AboutPanel"), and names that differ
+  only in case are listed once.
+
 ## [1.1.2] - 2026-10-28
 
 - **Sentence cuts respect abbreviations.** A contains cell is cut at a

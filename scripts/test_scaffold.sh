@@ -575,6 +575,14 @@ for t in refund_test.ts test_checkout.ts conftest.py; do echo "// one case" > "$
 bash "$here/init_namespaces.sh" "$ab" >/dev/null 2>&1
 check "abbreviation is not a sentence end" 'e\.g\. parsers for source files\. |' "$ab/.prefixer/namespaces.md"
 check "test dir named by what it tests" 'tests for checkout, refund' "$ab/.prefixer/namespaces.md"
+tn="$tmp/testnames"; mkdir -p "$tn/tests"
+printf '# Tests\n' > "$tn/tests/README.md"
+for t in test_helpers.py test_refund.py contest.py contest_test.py RefundTest.java; do
+  echo "# one case" > "$tn/tests/$t"
+done
+bash "$here/init_namespaces.sh" "$tn" >/dev/null 2>&1
+check "test names skip helpers, non-test files, bare -test words" \
+  'tests for contest, [Rr]efund |' "$tn/.prefixer/namespaces.md"
 
 # --- suggest_map.sh: log + tree → proposed rows -----------------------
 sg="$tmp/suggest"; mkdir -p "$sg/src/api" "$sg/src/core" "$sg/.prefixer"
