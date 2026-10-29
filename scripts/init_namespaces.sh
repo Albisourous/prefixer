@@ -218,11 +218,14 @@ desc_for() { # name, rel
     test|tests|__tests__|spec|specs|e2e)
       names="$(printf '%s\n' "$list" | awk '{
           b = $0; sub(/.*\//, "", b); sub(/\.[^.]*$/, "", b); l = tolower(b)
-          if (match(l, /[._-](test|spec)s?$/)) n = substr(b, 1, RSTART - 1)
-          else if (match(l, /^(test|spec)s?[._-]/)) n = substr(b, RLENGTH + 1)
-          else if (b ~ /[a-z0-9](Test|Spec)s?$/) { n = b; sub(/(Test|Spec)s?$/, "", n) }
-          else if (b ~ /^Tests?[A-Z]/) { n = b; sub(/^Tests?/, "", n) }
-          else next
+          # strip a trailing then a leading marker: test_refund.spec -> refund;
+          # CamelCase needs a capital T, so HTTPTest counts and Contest does not
+          n = b; hit = 0
+          if (match(l, /[._-](test|spec)s?$/)) { n = substr(b, 1, RSTART - 1); hit = 1 }
+          else if (b ~ /[A-Za-z0-9](Test|Spec)s?$/) { sub(/(Test|Spec)s?$/, "", n); hit = 1 }
+          if (match(tolower(n), /^(test|spec)s?[._-]/)) { n = substr(n, RLENGTH + 1); hit = 1 }
+          else if (n ~ /^Tests?[A-Z]/) { sub(/^Tests?/, "", n); hit = 1 }
+          if (!hit) next
           sub(/\..*/, "", n)
           if (n == "" || tolower(n) ~ /^(conftest|__init__|index|setup|helpers?|utils?|fixtures?|mocks?|common|base|support)$/) next
           print n }' | sort -f | awk '!seen[tolower($0)]++' | head -3 | paste -sd, - | sed 's/,/, /g')"
