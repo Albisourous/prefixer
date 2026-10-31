@@ -102,6 +102,11 @@ case "$out" in
   *"mean pct_saved"*) echo "ok   repo eval aggregates" ;;
   *) echo "FAIL repo eval aggregates"; fail=1 ;;
 esac
+case "$out" in
+  *"map cost: "*" tokens), read once per session"*"mean saved per search: ~"*)
+    echo "ok   repo eval reports map cost" ;;
+  *) echo "FAIL repo eval reports map cost"; fail=1 ;;
+esac
 
 # nested rows eval under their composed tag — orders:checkout must not
 # be measured against the payments:checkout scope
@@ -126,6 +131,11 @@ out="$(bash "$here/eval_repo.sh" "$blind" 2>/dev/null)"
 case "$out" in
   *n/a*) echo "ok   0-hit namespace reports n/a" ;;
   *) echo "FAIL 0-hit namespace reports n/a"; fail=1 ;;
+esac
+case "$out" in
+  *"eval_scope.sh <repo> <pattern> <tag>"*)
+    echo "ok   n/a note names the probe command" ;;
+  *) echo "FAIL n/a note names the probe command"; fail=1 ;;
 esac
 
 # --- contains sampling: doc comment, then exports, then file names ---
