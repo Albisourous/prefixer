@@ -12,7 +12,7 @@ license: MIT
 compatibility: Requires bash and standard POSIX tools (grep, find, sed,
   awk); scripts/visualize.py also needs Python 3. No network access.
 metadata:
-  version: "1.1.4"
+  version: "1.2.0"
 allowed-tools:
   - read
   - grep
@@ -262,7 +262,7 @@ These thoughts mean stop. You are rationalizing.
 - `scripts/install_hook.sh`: wire the SessionStart hook for devin/claude
 - `scripts/doctor.sh`: health-check a repo's setup: map, lint, hook, install stamps
 - `scripts/eval_scope.sh`: measure the token delta of a scoped search vs root
-- `scripts/eval_repo.sh`: lint + eval every namespace in a map, mean % saved
+- `scripts/eval_repo.sh`: lint + eval every namespace in a map, mean % saved and the map's token cost
 - `scripts/visualize.py`: render the map on the file tree + the measured savings as an HTML report
 - `SPEC.md`: the namespaces.md format contract, for tools that read or write maps
 - `integrations/`: session-start hook snippets + a PR lint workflow for consumer repos

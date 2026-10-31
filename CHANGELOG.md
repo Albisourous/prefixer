@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.0] - 2026-10-31
+
+- **`eval_repo.sh` reports the map's cost.** After the mean, it prints
+  the map's size in estimated tokens and the mean tokens saved per
+  search, so you can see whether the map pays for itself on your repo.
+- **`n/a` rows name the next step.** The note gives the `eval_scope.sh`
+  command for probing those rows with a real pattern.
+- **README adds numbers from real working repos** and says where
+  prefixer helps less: small or flat repos, and the first search in the
+  agent eval.
+
 ## [1.1.4] - 2026-10-28
 
 - **Test markers are stripped at both ends.** `test_refund.spec.ts`

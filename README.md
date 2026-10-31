@@ -93,13 +93,37 @@ lint status) in
 `bash scripts/eval_repo.sh <repo>` on your own repo gets your numbers;
 `eval_scope.sh <repo> <pattern> <prefix>` measures a single query.
 
+**On real working repos** (scaffolded map, 0 lint failures, same
+`eval_repo.sh` probe):
+
+| repo | files | mean bytes saved | map cost |
+|---|---:|---:|---:|
+| [prefixer](https://github.com/Albisourous/prefixer) (this repo) | 81 | **87%** | ~350 tokens |
+| [Albisourous/KiroCrew](https://github.com/Albisourous/KiroCrew) | 5,971 | **81%** | ~475 tokens |
+| private Roblox game | 160 | **57%** | ~385 tokens |
+| private C++ ray tracer | 321 | **40%** | ~245 tokens |
+
+The map is read once per session, and one scoped search can repay it
+many times over. Real queries on KiroCrew, scoped to `kiro:`:
+`useState` returned 99% fewer bytes (~68k tokens saved) and `kiro-cli`
+65% fewer (~69k tokens). Those are raw grep sizes; `search.sh` caps its
+own output at 40 hits, so an agent never reads the full root result.
+
+It helps less on small or flat repos. The ray tracer saved 40%, and 6
+of its 11 namespaces were `n/a` because the row's name never appears in
+its own files; probe those rows with a real pattern through
+`eval_scope.sh`. `eval_repo.sh` prints the map's token cost next to the
+mean tokens saved per search, so you can see the payback on your repo.
+
 **Behavior, not just bytes:** `eval/agent/run.sh` runs a fixed task suite
 through a real agent CLI (Devin or Claude Code), once with the map
 injected and once without, logging every tool call through a hook:
 searches, output bytes, first-try-scoped rate, answer correctness.
 Latest 15-run aggregate: mapped sessions averaged **4.6 tool calls per
-task vs 7.2** without the map, 100% correct answers both ways. On the
-~140-file fixture per-search output ran larger in the mapped arm; at
+task vs 7.2** without the map, 100% correct answers both ways.
+The first search was scoped in 27% of runs either way, so the gain comes
+from fewer follow-up calls, not a better first search. On the ~140-file
+fixture per-search output ran larger in the mapped arm; at
 that size the map sits near its break-even, which the size gate already
 predicts. The corpus table above carries the byte claim; the harness
 answers whether agents actually change how they search.
