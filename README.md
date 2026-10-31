@@ -22,10 +22,11 @@ playbooks for index-time doc prefixes and prompt-cache ordering.
 **Get started** (30 seconds):
 
 ```bash
-npx skills add Albisourous/prefixer        # install the skill
-bash .agents/skills/prefixer/scripts/init_namespaces.sh   # scaffold your repo's map
-bash .agents/skills/prefixer/scripts/install_hook.sh      # optional: inject the map at session start
-bash .agents/skills/prefixer/scripts/doctor.sh            # health-check the whole setup
+npx skills add Albisourous/prefixer   # install (lands in .agents/, .claude/, or .devin/)
+PFX=.devin/skills/prefixer            # set to your install dir
+bash $PFX/scripts/init_namespaces.sh  # scaffold your repo's map
+bash $PFX/scripts/install_hook.sh     # optional: inject the map at session start
+bash $PFX/scripts/doctor.sh           # health-check the whole setup
 ```
 
 Every agent session then reads `.prefixer/namespaces.md` and searches
