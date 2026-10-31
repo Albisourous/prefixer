@@ -12,7 +12,7 @@ license: MIT
 compatibility: Requires bash and standard POSIX tools (grep, find, sed,
   awk); scripts/visualize.py also needs Python 3. No network access.
 metadata:
-  version: "1.0.0"
+  version: "1.1.4"
 allowed-tools:
   - read
   - grep
@@ -166,7 +166,11 @@ call; a broad search costs the whole hit list in tokens.
 resolves the tag to its globs, searches inside them, widens one level on a
 miss, and logs the metrics line; §4 to §8 run themselves. `--scope <ns>`
 prints the glob list, `--paths <ns>` the resolved files, `--list` every
-tag; the map as an index other commands can query.
+tag; the map as an index other commands can query. Output is budgeted:
+40 hits print (`--max N`, `--all`), long lines are cut, and the rest is
+summarized by dir so the next call narrows instead of paging. `-l` lists
+files with hit counts. Only git-tracked and untracked-not-ignored files
+are searched, so `.gitignore`d output never costs tokens.
 
 **Watch for:** searching the repo root "just in case", glob patterns like
 `**/*` with no path constraint, `find` used where a namespace glob would do.

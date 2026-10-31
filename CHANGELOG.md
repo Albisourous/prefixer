@@ -1,5 +1,85 @@
 # Changelog
 
+## [1.1.4] - 2026-10-28
+
+- **Test markers are stripped at both ends.** `test_refund.spec.ts`
+  gives "refund", not "test_refund".
+- **Acronym test names count.** `HTTPTest.java` gives "HTTP". A capital
+  `Test` marks a test file, so `Contest.java` is still skipped.
+
+## [1.1.3] - 2026-10-28
+
+- **Test dir names come from test files only.** A suite is named by
+  files that look like tests (`test_refund.py`, `refund.spec.ts`,
+  `RefundTest.java`). A README, fixture data, or `contest.py` no longer
+  shows up as a tested feature.
+- **Generic names are dropped after the test marker is stripped.**
+  `test_helpers.py` no longer adds "helpers" to the cell.
+- **"test" is stripped only after a separator.** `contest_test.py`
+  gives "contest", not "con". A dotted name keeps its first part
+  (`AboutPanel.tabs.test.tsx` gives "AboutPanel"), and names that differ
+  only in case are listed once.
+
+## [1.1.2] - 2026-10-28
+
+- **Sentence cuts respect abbreviations.** A contains cell is cut at a
+  sentence end only when `.`, `!`, or `?` comes before a capital and
+  does not close an abbreviation such as `e.g.`, `i.e.`, or `etc.`.
+- **Test dirs keep repo-specific descriptions.** Instead of a fixed
+  phrase, an undocumented test dir is named by what its files test
+  (`test_refund.py`, `checkout.spec.ts` give "tests for checkout,
+  refund"). The repo's own docs still win.
+
+## [1.1.1] - 2026-10-28
+
+Scaffold fixes from a second real-repo pass. Generated maps for
+KiroCrew, rysolv, ray-tracer, and RoBall3D now lint with 0 warnings.
+
+- **Submodules stay out of the index.** A git submodule (gitlink, mode
+  160000) is another repo and an empty dir in this one. It no longer
+  counts as an uncovered top dir.
+- **The `misc:` row holds up to 24 dirs** (was 12), so mid-size repos
+  no longer push dirs into the `unmapped:` footer.
+- **Cleaner contains cells.** Text is cut at the first sentence or at a
+  word boundary with `...`, never mid-word or mid-character. Section
+  banners (`== Foo ==`) and commented-out code are skipped as
+  descriptions. Test dirs read "tests and fixtures" instead of one
+  test case's comment. C-family type names and include guards no
+  longer show up as exports.
+
+## [1.1.0] - 2026-10-28
+
+Real-repo pass: the scaffold and search now hold up on 1,000 to 6,000
+file codebases, not just fixtures. On a 6,000-file repo a broad
+`search.sh kiro: import` dropped from about 338k tokens to under 1k.
+
+- **Search output is budgeted.** `search.sh` prints at most 40 hits
+  (`--max N`, `--all`, env `PREFIXER_MAX_HITS`), cuts lines past 240
+  chars, and summarizes the rest by dir so the next call can narrow.
+  `-l` lists files by hit count; `-w` and `-F` pass through to grep.
+  The metrics line gains `shown`, and `est_tokens` is what printed.
+- **Git-aware file index.** `lib_scope.sh` lists files once per run
+  from `git ls-files` (tracked plus untracked-not-ignored), falling
+  back to `find` outside git. Scopes, widen-to-root, and coverage
+  checks all read it, so `.gitignore`d output never reaches a search
+  and no scope runs its own `find`.
+- **Size-weighted scaffold.** `init_namespaces.sh` weighs every dir by
+  the text files a grep would read, then gives rows to the heaviest
+  dirs up to three levels deep. A big package gets child rows instead
+  of one broad scope, single-child chains collapse (`src/pkg/` maps as
+  `pkg:`), and container dirs (`src/`, `services/`, `packages/`) keep
+  their children as top-level tags.
+- **No silent coverage holes.** Top dirs that miss the row cap share
+  one `misc:` row; the `unmapped:` footer only lists what did not fit
+  there, capped at 8 names.
+- **Better contains cells.** Each row reports its file count and the
+  biggest subdirs without a row. Descriptions also come from the dir's
+  own README or manifest, agent-doc lines stop at the next path, and
+  symbols are sampled from source files only.
+- **Tighter synthetic rows.** Root files compress to `*.ext` groups,
+  lockfiles stay out, and jumbo-file rows only name source files that
+  are not tests.
+
 ## [1.0.0] - 2026-10-26
 
 First stable release. The skill, scripts, spec, and eval harness from

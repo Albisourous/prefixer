@@ -107,19 +107,17 @@ while IFS= read -r raw; do
 done <<EOF
 $(awk -F'|' '/^[[:space:]]*\|/ { print $3 }' "$map" | sed 's/^[[:blank:]]*//; s/[[:blank:]]*$//')
 EOF
-# a dir the repo itself ignores is already opted out of mapping, so a
-# coverage warning for it is noise; in non-git dirs check-ignore fails
-# open and nothing is skipped
-in_git=false
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 && in_git=true
-ignored() { $in_git && git check-ignore -q "$1" 2>/dev/null; }
-
+# coverage asks only about dirs holding searchable files: the same
+# git-aware index scope_files reads, so .gitignore'd output never warns
+px_index
+# awk reads to EOF: an early exit SIGPIPEs repo_files and pipefail turns
+# a found dir into a miss
+has_indexed() { repo_files | awk -v p="$1/" 'index($0, p) == 1 { f = 1 } END { exit !f }'; }
 for d in */ .[!.]*/; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
   skipped_gen "$name" && continue
-  ignored "$name" && continue
-  [ -z "$(find "$d" -type f -not -name '.*' -print -quit 2>/dev/null)" ] && continue
+  has_indexed "$name" || continue
   cover "$name" || warn "uncovered top dir: $name/"
 done
 repo_slug="$(grep -m1 '^repo:' "$map" | sed 's/^repo: *//')"
@@ -130,7 +128,7 @@ for parent in src lib app packages apps services modules libs crates cmd \
     [ -d "$d" ] || continue
     child="$(basename "$d")"
     skipped_gen "$child" && continue
-    ignored "$parent/$child" && continue
+    has_indexed "$parent/$child" || continue
     cover "$parent/$child" || warn "uncovered dir: $parent/$child/"
   done
 done
@@ -138,8 +136,8 @@ done
 # root files are a search intent too (config, manifests, docs) — a scope
 # covers one by naming it or by a glob like *.md
 ufiles=""
-for f in *; do
-  [ -f "$f" ] || continue
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
   hit=0
   # same glob_re match as match_scope — case-glob [ would read a char
   # class where the scope grammar means a literal bracket
@@ -147,7 +145,9 @@ for f in *; do
     printf '%s\n' "$f" | grep -qE "$(glob_re "$tok")" && { hit=1; break; }
   done <<< "$scopes_all"
   [ "$hit" -eq 0 ] && ufiles="$ufiles $f"
-done
+done <<EOF
+$(repo_files | awk 'index($0, "/") == 0 && substr($0, 1, 1) != "."')
+EOF
 [ -n "$ufiles" ] && warn "uncovered root files:$ufiles"
 
 echo "checked $rows namespaces: $fails failures, $warns warnings"
