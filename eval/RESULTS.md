@@ -9,7 +9,7 @@ Regenerated weekly by `.github/workflows/eval.yml`.
 
 | repo | shape | namespaces | mean saved | range | lint |
 |------|-------|-----------:|-----------:|-------|------|
-| [obra/superpowers](https://github.com/obra/superpowers) | skills-pack | 8 | 78% | 60-95% | ok |
+| [obra/superpowers](https://github.com/obra/superpowers) | skills-pack | 8 | 77% | 59-95% | ok |
 | [mattpocock/skills](https://github.com/mattpocock/skills) | skills-pack | 8 | 83% | 52-98% | ok |
 | [anthropics/skills](https://github.com/anthropics/skills) | skills-pack | 9 | 55% | 4-99% | FAIL |
 | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | skills-pack | 5 | 84% | 67-97% | FAIL |
@@ -21,7 +21,7 @@ Regenerated weekly by `.github/workflows/eval.yml`.
 | [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) | rust-cli | 10 | 65% | 17-99% | ok |
 | [shadcn-ui/ui](https://github.com/shadcn-ui/ui) | monorepo | 9 | 68% | 10-99% | ok |
 | [rust-lang/book](https://github.com/rust-lang/book) | docs-site | 2 | 66% | 34-98% | ok |
-| [cli/cli](https://github.com/cli/cli) | go-cli | 10 | 75% | 21-99% | warn |
+| [cli/cli](https://github.com/cli/cli) | go-cli | 10 | 76% | 22-99% | warn |
 | [pallets/flask](https://github.com/pallets/flask) | python-web | 11 | 77% | 29-99% | ok |
 | [fastapi/fastapi](https://github.com/fastapi/fastapi) | python-web | 7 | 76% | 12-99% | FAIL |
 | [spf13/cobra](https://github.com/spf13/cobra) | go-cli-lib | 4 | 85% | 67-95% | ok |
@@ -30,4 +30,4 @@ Regenerated weekly by `.github/workflows/eval.yml`.
 
 **Corpus mean: 72% of search-output bytes saved across 18 repos.**
 
-Last run: 2026-11-02 (UTC)
+Last run: 2026-11-09 (UTC)
