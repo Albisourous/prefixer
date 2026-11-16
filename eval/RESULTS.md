@@ -12,8 +12,8 @@ Regenerated weekly by `.github/workflows/eval.yml`.
 | [obra/superpowers](https://github.com/obra/superpowers) | skills-pack | 8 | 77% | 59-95% | ok |
 | [mattpocock/skills](https://github.com/mattpocock/skills) | skills-pack | 8 | 83% | 52-98% | ok |
 | [anthropics/skills](https://github.com/anthropics/skills) | skills-pack | 9 | 55% | 4-99% | FAIL |
-| [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | skills-pack | 5 | 84% | 67-97% | FAIL |
-| [blader/humanizer](https://github.com/blader/humanizer) | agent-skill | 4 | 67% | 0-94% | ok |
+| [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | skills-pack | 7 | 88% | 67-98% | warn |
+| [blader/humanizer](https://github.com/blader/humanizer) | agent-skill | 3 | 90% | 86-94% | ok |
 | [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) | knowledge-graph | 10 | 78% | 0-99% | ok |
 | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) | web-app | 8 | 91% | 76-99% | ok |
 | [expressjs/express](https://github.com/expressjs/express) | web-framework | 3 | 60% | 11-86% | ok |
@@ -28,6 +28,6 @@ Regenerated weekly by `.github/workflows/eval.yml`.
 | [tokio-rs/tokio](https://github.com/tokio-rs/tokio) | rust-async | 10 | 71% | 27-99% | ok |
 | [google/gson](https://github.com/google/gson) | java-library | 11 | 59% | 2-99% | ok |
 
-**Corpus mean: 72% of search-output bytes saved across 18 repos.**
+**Corpus mean: 74% of search-output bytes saved across 18 repos.**
 
-Last run: 2026-11-09 (UTC)
+Last run: 2026-11-16 (UTC)
