@@ -82,8 +82,8 @@ claim stays honest as the scaffold changes:
 
 | repo | shape | mean bytes saved |
 |---|---|---|
+| blader/humanizer | agent-skill | **91%** |
 | DietrichGebert/ponytail | web-app | **91%** |
-| blader/humanizer | agent-skill | **90%** |
 | addyosmani/agent-skills | skills-pack | **88%** |
 | spf13/cobra | go-cli-lib | **85%** |
 | mattpocock/skills | skills-pack | **83%** |
