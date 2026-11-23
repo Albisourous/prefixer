@@ -5,7 +5,8 @@ The point of tracking is that prefix claims stay honest. No baseline, no
 
 ## The log
 
-`.prefixer/metrics.jsonl`, one line per task, committed with the repo:
+`.prefixer/metrics.jsonl`, one line per task, local telemetry `.gitignore`d
+by the scaffold (commit it only if the team wants shared trend data):
 
 ```json
 {"ts":"2026-10-26T14:03:11Z","task":"find-session-expiry","searches":3,"tool_calls":4,"first_try_hit":true,"est_tokens":1400}

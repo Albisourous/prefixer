@@ -4,7 +4,7 @@
 #
 # One copy of the rules every script must agree on:
 #   scope grammar  — expand_scope, glob_re, match_scope, resolve
-#   map parsing    — scope_pairs, tag_scope, map_root
+#   map parsing    — scope_pairs, tag_scope, tag_contains, map_root
 #   exclusion lists — PREFIXER_SKIP, skipped_gen, grep_excludes
 #
 # Scope semantics (the contract SPEC.md formalizes): scopes are
@@ -157,6 +157,24 @@ tag_scope() { # want-tag, map → scope
       tag = (par == "" ? name : par ":" name); t[lvl] = tag
       gsub(/^[[:space:]]+|[[:space:]]+$/, "", sc)
       if (tag == want) { print sc; exit }
+    }' "$2"
+}
+
+# composed tag → its contains cell: the why of the row, echoed by
+# search.sh so the scope choice narrates itself
+tag_contains() { # want-tag, map → contains
+  awk -F'|' -v want="$1" '
+    /^[[:space:]]*\|/ {
+      pf=$2; co=$4; name=pf
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", name); sub(/:[[:space:]]*$/, "", name)
+      if (name == "" || name == "prefix" || name ~ /^-/) next
+      ind = pf; sub(/[^[:space:]].*/, "", ind); lvl = length(ind)
+      for (i in t) if (i >= lvl) delete t[i]
+      par = ""
+      for (i = lvl - 1; i >= 0; i--) if (i in t) { par = t[i]; break }
+      tag = (par == "" ? name : par ":" name); t[lvl] = tag
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", co)
+      if (tag == want) { print co; exit }
     }' "$2"
 }
 

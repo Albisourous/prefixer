@@ -49,7 +49,8 @@ if [ "$platform" = auto ] || [ "$platform" = all ]; then
   if [ -d .devin ] || [ "$platform" = all ]; then targets="$targets devin"; fi
   if [ -d .claude ] || [ "$platform" = all ]; then targets="$targets claude"; fi
   # nothing marked: devin's file is the standalone format — start there
-  [ -n "$targets" ] || targets=" devin"
+  [ -n "$targets" ] || { targets=" devin"
+    echo "note: no .devin or .claude found; writing .devin/hooks.v1.json, which only Devin reads" >&2; }
 else
   targets=" $platform"
 fi

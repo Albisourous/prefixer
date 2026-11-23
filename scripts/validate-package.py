@@ -104,7 +104,7 @@ for s in sorted((ROOT / "scripts").glob("*.sh")):
         fail(f"{s.relative_to(ROOT)}: missing shebang")
 
 # no em/en dashes in user-facing prose (see AGENTS.md writing style)
-SKIP_DIRS = {".git", ".prefixer", "node_modules", ".work", ".fixture", ".runs"}
+SKIP_DIRS = {".git", ".prefixer", "node_modules", ".work", ".fixture", ".runs", "graphify-out"}
 TEXT_EXT = {".md", ".txt", ".html", ".svg", ".yml", ".yaml"}
 DASH = re.compile(r"[—–−―]")
 for f in sorted(ROOT.rglob("*")):

@@ -86,6 +86,10 @@ exact="$(printf '%s' "$matches" | awk -F'\t' -v n="$ns" '$1 == n')"
 [ -n "$exact" ] && matches="$exact"
 scope="$(printf '%s' "$matches" | head -1 | cut -f2)"
 tag="$(printf '%s' "$matches" | head -1 | cut -f1)"
+# the row's contains cell is the why: echo it so the scope choice
+# narrates itself on every verdict line below
+contains="$(tag_contains "$tag" "$map")"
+why=""; [ -n "$contains" ] && why=" ($contains)"
 
 # the scope cell is data, never shell — a metachar scope is a mistake,
 # not a glob (same rule check_namespaces.sh enforces)
@@ -106,28 +110,31 @@ esac
 
 # scoped pass — the namespace's globs to files, one grep over the list.
 # an empty file list must not reach xargs: grep with no file operands
-# would read stdin and can hang an interactive caller
-run_scoped() { # scope → hits on stdout
+# would read stdin and can hang an interactive caller.
+# sets globals, not stdout: a $( ) call would subshell away last_nfiles
+run_scoped() { # scope → run_hits, last_nfiles
   local files
   files="$(scope_files "$1")"
+  last_nfiles="$(printf '%s\n' "$files" | grep -c .)"
+  run_hits=""
   [ -n "$files" ] || return 0
-  printf '%s' "$files" | tr '\n' '\0' |
-    xargs -0 grep -nIH $ign ${gflags[@]+"${gflags[@]}"} -- "$pat" 2>/dev/null
+  run_hits="$(printf '%s' "$files" | tr '\n' '\0' |
+    xargs -0 grep -nIH $ign ${gflags[@]+"${gflags[@]}"} -- "$pat" 2>/dev/null)"
 }
-hits="$(run_scoped "$scope")"
+run_scoped "$scope"; hits="$run_hits"
 
 # widen one level on a miss: nested tag → parent scope, then the repo
 # minus generated dirs. Never a jump straight to vendor.
-found_in="" level=""
-if [ -n "$hits" ]; then found_in="$tag"; level="$tag:"
+found_in=""
+if [ -n "$hits" ]; then found_in="$tag"
 else
   if [ "$widen" -eq 1 ]; then
     if [[ "$tag" == *:* ]]; then
       ptag="${tag%:*}"
       pscope="$(tag_scope "$ptag" "$map")"
       if [ -n "$pscope" ]; then
-        hits="$(run_scoped "$pscope")"
-        [ -n "$hits" ] && { found_in="$ptag"; level="$ptag:"; }
+        run_scoped "$pscope"; hits="$run_hits"
+        [ -n "$hits" ] && found_in="$ptag"
       fi
     fi
     if [ -z "$hits" ]; then
@@ -135,7 +142,7 @@ else
       # (the log echoes every pattern, a widened search would self-hit)
       hits="$(repo_files | tr '\n' '\0' |
         xargs -0 grep -nIH $ign ${gflags[@]+"${gflags[@]}"} -- "$pat" 2>/dev/null)"
-      [ -n "$hits" ] && { found_in="root"; level=""; }
+      [ -n "$hits" ] && found_in="root"
     fi
   fi
 fi
@@ -177,12 +184,12 @@ fi
 first=true
 [ "$found_in" != "$tag" ] && first=false
 if [ "$found_in" = "$tag" ]; then
-  echo "searched ${tag}: → $n hits, $shown shown (~$est tokens)" >&2
+  echo "searched ${tag}:${why} → $n hits, $shown shown (~$est tokens, $last_nfiles files)" >&2
 elif [ -n "$found_in" ]; then
-  echo "miss in ${tag}:, widened to $found_in → $n hits, $shown shown (~$est tokens)" >&2
+  echo "miss in ${tag}:${why}, widened to $found_in → $n hits, $shown shown (~$est tokens)" >&2
   [ -n "$hit_dirs" ] && echo "hits landed under: $hit_dirs, possible map gap" >&2
 else
-  msg="miss in ${tag}:"
+  msg="miss in ${tag}:${why}"
   [ "$widen" -eq 1 ] && msg="$msg, none repo-wide either"
   echo "$msg (~$est tokens)" >&2
 fi

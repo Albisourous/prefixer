@@ -1059,5 +1059,72 @@ case "$out" in
   *) echo "FAIL --quiet prints only problems: $out"; fail=1 ;;
 esac
 
+# --- visible value: the verdict line says the why and the scan size ---
+out="$(cd "$srch" && bash "$here/search.sh" auth expire 2>&1 >/dev/null)"
+case "$out" in
+  *"searched auth: (sessions, tokens)"*"hits"*"files)"*) echo "ok   search echo says why + scan size" ;;
+  *) echo "FAIL search echo says why + scan size: $out"; fail=1 ;;
+esac
+out="$(cd "$srch" && bash "$here/search.sh" api expire 2>&1 >/dev/null || true)"
+case "$out" in
+  *"miss in api: (handlers)"*) echo "ok   widen echo keeps the why" ;;
+  *) echo "FAIL widen echo keeps the why: $out"; fail=1 ;;
+esac
+
+# --- session_start.sh recaps logged scoped searches -------------------
+out="$(cd "$srch" && bash "$here/session_start.sh")"
+case "$out" in
+  *"scoped searches logged"*"hit first try"*) echo "ok   session_start recaps logged searches" ;;
+  *) echo "FAIL session_start recaps logged searches: $out"; fail=1 ;;
+esac
+out="$(cd "$nostart" && bash "$here/session_start.sh")"
+case "$out" in
+  *"scoped searches logged"*) echo "FAIL recap without a log"; fail=1 ;;
+  *) echo "ok   recap silent without a log" ;;
+esac
+
+# --- report_metrics.sh: a missing log nudges, never fails -------------
+nlog="$tmp/nolog"; mkdir -p "$nlog/.prefixer"
+cp "$srch/.prefixer/namespaces.md" "$nlog/.prefixer/namespaces.md"
+rc=0; out="$(cd "$nlog" && bash "$here/report_metrics.sh" 2>&1)" || rc=$?
+case "$out" in
+  *"no metrics log"*) [ "$rc" -eq 0 ] && echo "ok   empty log exits 0 with nudge" \
+    || { echo "FAIL empty log exits 0 with nudge (rc=$rc)"; fail=1; } ;;
+  *) echo "FAIL empty log exits 0 with nudge: $out"; fail=1 ;;
+esac
+
+# --- install_hook.sh warns on the .devin fallback, doctor agrees ------
+noauto="$tmp/noauto"; mkdir -p "$noauto/.prefixer"
+echo x > "$noauto/f.ts"; cp "$srch/.prefixer/namespaces.md" "$noauto/.prefixer/namespaces.md"
+out="$(cd "$noauto" && bash "$here/install_hook.sh" 2>&1 >/dev/null)"
+case "$out" in
+  *"only Devin reads"*) [ -f "$noauto/.devin/hooks.v1.json" ] && echo "ok   fallback warns before writing .devin" \
+    || { echo "FAIL fallback warns before writing .devin: no file"; fail=1; } ;;
+  *) echo "FAIL fallback warns before writing .devin: $out"; fail=1 ;;
+esac
+out="$(cd "$noauto" && bash "$here/doctor.sh" 2>&1 || true)"
+case "$out" in
+  *"fires only under Devin"*) echo "ok   doctor flags a hook the harness cannot read" ;;
+  *) echo "FAIL doctor flags a hook the harness cannot read: $out"; fail=1 ;;
+esac
+
+# --- init_namespaces.sh: the run ends on the measured next step -------
+nx="$tmp/nx"; mkdir -p "$nx/src" "$nx/todo-app"
+printf '// TODO: rewrite this module\nexport function main() {}\n' > "$nx/src/app.ts"
+echo 'task list' > "$nx/todo-app/items.ts"
+( cd "$nx" && git init -q && git remote add origin git@github.com:acme/nx.git )
+out="$(bash "$here/init_namespaces.sh" "$nx" 2>&1 >/dev/null)"
+case "$out" in
+  *"next: "*"eval_repo.sh"*) echo "ok   init ends on the eval pointer" ;;
+  *) echo "FAIL init ends on the eval pointer: $out"; fail=1 ;;
+esac
+check "real todo- dir is not a draft" '| todoapp: | todo-app/\*\*' "$nx/.prefixer/namespaces.md"
+out="$(bash "$here/check_namespaces.sh" "$nx" 2>&1 || true)"
+case "$out" in
+  *"draft prefix: todoapp"*|*"draft contains"*) echo "FAIL scaffold output trips draft lint: $out"; fail=1 ;;
+  *"0 failures"*) echo "ok   scaffold output lints draft-free" ;;
+  *) echo "FAIL scaffold output lints draft-free: $out"; fail=1 ;;
+esac
+
 echo
 [ "$fail" -eq 0 ] && echo "all checks passed" || { echo "FAILURES"; exit 1; }

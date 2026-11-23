@@ -71,6 +71,12 @@ for f in .devin/hooks.v1.json .claude/settings.json; do
 done
 if [ -n "$hooked" ]; then
   ok "session-start hook wired:$hooked"
+  # install_hook.sh's auto fallback writes .devin/hooks.v1.json anywhere;
+  # if the file is all of .devin/ the repo's agent is probably not Devin
+  if printf '%s' "$hooked" | grep -q '.devin/hooks.v1.json' &&
+     [ -z "$(ls -A .devin 2>/dev/null | grep -v '^hooks.v1.json$')" ]; then
+    warn ".devin/ holds only the hook file; .devin/hooks.v1.json fires only under Devin"
+  fi
 else
   warn "no session-start hook; agents must remember to read the map (fix: install_hook.sh)"
 fi

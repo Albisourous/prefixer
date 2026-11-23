@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.3.0] - 2026-11-23
+
+The savings the machinery already produced are now said out loud, at
+the moments a user actually looks. A scoped search that never named
+its namespace or what it scanned read as no value delivered; this
+release makes the tool, the hook, and the install path each report
+what they did and why.
+
+- **`search.sh` narrates the scope choice.** The stderr verdict now
+  carries the row's `contains` reason and the scoped file count:
+  `searched auth: (login, sessions, tokens) → 5 hits, 5 shown (~96
+  tokens, 5 files)`. Widen and miss lines keep the reason too.
+  `lib_scope.sh` gains `tag_contains` for the lookup. No new
+  measurement: the file count was already resolved, and the claimed
+  savings still live in `eval_scope.sh` where the counterfactual grep
+  is honest.
+- **`session_start.sh` recaps logged searches.** After the health
+  verdict, hooked sessions see `prefixer: N scoped searches logged, M%
+  hit first try.` when the log has scoped-search lines, silent
+  otherwise. The healthy line also asks the agent to say which tag it
+  used.
+- **The install path ends on the user's own number.**
+  `init_namespaces.sh` prints a `next:` line: fix draft rows then run
+  `eval_repo.sh` (which reports output bytes saved per row, measured
+  on that repo), and the README quickstart now includes the eval step.
+- **Wrong-harness installs stop being silent.** `install_hook.sh`
+  warns when auto-detect falls back to writing `.devin/hooks.v1.json`
+  in a repo with no `.devin` or `.claude` marker, and `doctor.sh`
+  warns when a `.devin/` directory holds only the hook file, the case
+  where no harness will ever read it.
+- **Draft detection agrees with the linter.** `init_namespaces.sh`
+  counts `TODO` contains cells the way `check_namespaces.sh` fails
+  them, stops lifting `TODO` comments into `contains`, and collapses a
+  real `todo-*` directory's prefix to `todoapp:` so a genuine name is
+  not condemned as a draft marker.
+- **`report_metrics.sh` treats a missing log as a nudge, not a
+  failure** (exit 0 with the "route searches through search.sh"
+  hint), and the delta line now labels itself: `different patterns;
+  trend, not a claim`.
+- **Prose contract.** SKILL.md states the conditional rule: say why a
+  scope was picked when it is not obvious, and let the script say it
+  otherwise. `references/metrics.md` no longer contradicts the
+  gitignored-telemetry policy.
+- **Validator robustness.** `validate-package.py` skips
+  `graphify-out/` in the em/en dash scan, matching the `*-out`
+  generated-dir convention the rest of the tooling uses.
+- **New `test_scaffold.sh` cases** cover the new surface: echo text,
+  recap, empty-log exit, fallback warning, doctor flag, eval pointer,
+  and the `todo-`/`TODO` grammar alignment.
+
 ## [1.2.0] - 2026-10-31
 
 - **`eval_repo.sh` reports the map's cost.** After the mean, it prints

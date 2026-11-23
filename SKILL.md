@@ -12,7 +12,7 @@ license: MIT
 compatibility: Requires bash and standard POSIX tools (grep, find, sed,
   awk); scripts/visualize.py also needs Python 3. No network access.
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 allowed-tools:
   - read
   - grep
@@ -163,8 +163,10 @@ answer. `grep "expire" src/auth/` beats `grep "expire" .`. A miss costs one
 call; a broad search costs the whole hit list in tokens.
 
 **Let the script carry the rule:** `bash scripts/search.sh auth "expire"`
-resolves the tag to its globs, searches inside them, widens one level on a
-miss, and logs the metrics line; §4 to §8 run themselves. `--scope <ns>`
+resolves the tag to its globs, searches inside them, says the tag with its
+`contains` reason plus hits and files scanned on stderr, widens one level
+on a miss, and logs the metrics line; the search and its logging run
+themselves. `--scope <ns>`
 prints the glob list, `--paths <ns>` the resolved files, `--list` every
 tag; the map as an index other commands can query. Output is budgeted:
 40 hits print (`--max N`, `--all`), long lines are cut, and the rest is
@@ -188,6 +190,11 @@ from a miss straight to a whole-repo scan, and do not search `node_modules`,
 The next search, yours or a future session's, then starts already scoped.
 When a file resists every namespace, that is signal the map has a gap;
 mention it instead of inventing a tag.
+
+**Say why only when the scope is not obvious.** A non-obvious choice gets
+the tag and its reason in one clause; a search inside `src/auth/` says
+nothing extra, and `search.sh` prints the tag with its `contains` reason
+for you.
 
 ## C. Tracking
 
@@ -254,7 +261,7 @@ These thoughts mean stop. You are rationalizing.
 - `references/metrics.md`: metric definitions, JSONL schema, delta reporting
 - `scripts/init_namespaces.sh`: scaffold a namespace map for the current repo
 - `scripts/check_namespaces.sh`: lint a map: dead scopes, dup tags, drafts
-- `scripts/search.sh`: scoped search as a command: resolve, search, widen, log
+- `scripts/search.sh`: scoped search as a command: resolve, search, say why + scan size, widen, log
 - `scripts/suggest_map.sh`: read the log + the tree, propose map edits
 - `scripts/measure_search.sh`: run a search and log it in one step
 - `scripts/report_metrics.sh`: read the log back: hit rate, scope spend, delta

@@ -19,14 +19,20 @@ playbooks for index-time doc prefixes and prompt-cache ordering.
   <a href="https://github.com/Albisourous/prefixer/actions/workflows/validate.yml"><img src="https://github.com/Albisourous/prefixer/actions/workflows/validate.yml/badge.svg" alt="validate"></a>
 </p>
 
-**Get started** (30 seconds):
+**Get started** (about a minute):
 
 ```bash
 npx skills add Albisourous/prefixer        # install the skill
 bash .agents/skills/prefixer/scripts/init_namespaces.sh   # scaffold your repo's map
+bash .agents/skills/prefixer/scripts/eval_repo.sh         # measured output bytes saved per row, on your repo
 bash .agents/skills/prefixer/scripts/install_hook.sh      # optional: inject the map at session start
 bash .agents/skills/prefixer/scripts/doctor.sh            # health-check the whole setup
 ```
+
+If `init_namespaces.sh` reports draft rows, fill them first; eval and
+lint only mean something once the map is finished. The `.agents/skills/`
+path is where `npx skills add` puts the skill (`.claude/skills/` on
+Claude installs); other hosts differ, see [Install](#install) below.
 
 Every agent session then reads `.prefixer/namespaces.md` and searches
 scoped, or runs `search.sh <ns> <pattern>`, which resolves the tag,
@@ -61,7 +67,7 @@ read 3 wrong files          → still guessing
 
 ```
 read .prefixer/namespaces.md            → auth: = src/auth/**
-grep "session" src/auth/                → 12 hits
+search.sh auth session                  → searched auth: (login, sessions, tokens) → 12 hits (~300 tokens, 31 files)
 read src/auth/session.ts:40-58          → found
 ≈ 3 tool calls, a fraction of the tokens, answer found first try
 ```
@@ -90,7 +96,8 @@ A namespace whose own name never appears in its files reports `n/a`;
 the mean only counts measurable probes. Full table (per-repo ranges,
 lint status) in
 [eval/RESULTS.md](eval/RESULTS.md), refreshed weekly by CI.
-`bash scripts/eval_repo.sh <repo>` on your own repo gets your numbers;
+`bash .agents/skills/prefixer/scripts/eval_repo.sh` in your own repo gets
+your numbers;
 `eval_scope.sh <repo> <pattern> <prefix>` measures a single query.
 
 **On real working repos** (scaffolded map, 0 lint failures, same

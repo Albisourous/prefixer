@@ -123,6 +123,9 @@ doc_line() {
       # section banners (== Foo ==, ── Foo ──) label a block, not the file
       if (line ~ /^[^A-Za-z0-9[:space:]`"\x27(\[@][^A-Za-z0-9[:space:]]/) next
       if (low ~ /copyright|licen[cs]e|spdx|vim:|coding[:=]|@file|@brief|@author|generated|do not edit/) next
+      # a TODO comment is a task marker, not a description; the linter
+      # fails it as a draft contains cell
+      if (line ~ /TODO/) next
       an = gsub(/[A-Za-z0-9]/, "&", line)
       if (split(line, w, /[[:space:]]+/) >= 3 && length(line) >= 15 &&
           an >= length(line) * 0.45) { print line; exit }
@@ -163,6 +166,7 @@ doc_subject() { # rel, name, doc
         gsub(/[[:space:]]*\|[[:space:]]*/, ", ", rest)
         # "docs/ the guides, tests/ the suites": stop at the next path
         sub(/[,;][[:space:]]*`?[A-Za-z0-9_.-]+\/.*$/, "", rest); sub(/[[:space:],]+$/, "", rest)
+        if (rest ~ /TODO/) next
         if (length(rest) >= 8) { print rest; exit }
       }
     }' | head -1
@@ -178,6 +182,7 @@ dir_blurb() { # rel
       /^[[:space:]]*```/ { fence = !fence; next } fence { next }
       /^[[:space:]]*(#|<|\||!|=|-{3,}|\[)/ { next }
       { sub(/^[[:space:]]*[-*>][[:space:]]*/, "")
+        if ($0 ~ /TODO/) next
         an = gsub(/[A-Za-z0-9]/, "&")
         if (split($0, w, /[[:space:]]+/) >= 3 && an >= length($0) * 0.5) { print; exit } }')"
     [ -n "$line" ] && { printf '%s' "$line"; return; }
@@ -294,11 +299,14 @@ emit() { # depth, rel
   i=0; while [ "$i" -lt "$lvl" ]; do indent="$indent  "; i=$((i + 1)); done
   sibs=()
   while IFS= read -r n; do [ -n "$n" ] && sibs+=("${n#.}"); done <<EOF
-$(kids_of "$(case "$rel" in */*) printf '%s' "${rel%/*}" ;; esac)")
+$(kids_of "$(case "$rel" in ( */*) printf '%s' "${rel%/*}" ;; esac)")
 EOF
   p="$(pfx "$name" "$rel" ${sibs[@]+"${sibs[@]}"})"
   p="$(printf '%s' "$p" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-' '-' | sed 's/^-*//; s/-*$//')"
   [ -n "$p" ] || p="dir"
+  # a real dir named todo-* reads as a draft marker to the linter;
+  # collapse the dash so the row lints as what it is
+  case "$p" in todo-*) p="todo${p#todo-}" ;; esac
   # prefixes need only be unique within their parent level: nested
   # checkout: under payments: and orders: reads orders:checkout: vs
   # payments:checkout:. A same-named top-level pair (src/core, lib/core)
@@ -540,8 +548,15 @@ if [ -n "$rest" ]; then
   echo "note: capped at $max_rows rows; unmapped dirs: $(sed -n 's/^unmapped: \(.*\) (capped.*/\1/p' "$out")" >&2
 fi
 
-drafts=$(grep -cE 'todo-|undocumented' "$out" || true)
+# the draft count must match the linter's grammar: todo-* prefixes and
+# TODO/undocumented contains cells both fail check_namespaces.sh
+drafts=$(grep -cE 'todo-|TODO|undocumented' "$out" || true)
 echo "wrote $out · $rows namespaces, $drafts rows needing a human pass" >&2
 if [ "$nfiles" -lt 100 ]; then
   echo "note: ~$nfiles files; under ~100 the map is marginal; scope by dir names" >&2
+fi
+if [ "$drafts" -gt 0 ]; then
+  echo "next: fill the draft rows, then bash \"$here/check_namespaces.sh\" \"$root\" and \"$here/eval_repo.sh\" \"$root\"" >&2
+else
+  echo "next: bash \"$here/eval_repo.sh\" \"$root\"  (output bytes saved per row, measured on this repo)" >&2
 fi

@@ -15,7 +15,7 @@ log="$root/.prefixer/metrics.jsonl"
 [ -f "$log" ] || {
   echo "no metrics log at $log" >&2
   echo "run searches through search.sh or measure_search.sh to start it" >&2
-  exit 1
+  exit 0
 }
 
 repo="$(grep -m1 '^repo:' "$root/.prefixer/namespaces.md" 2>/dev/null | sed 's/^repo: *//')"
@@ -76,7 +76,7 @@ ftot=$((v_first + v_misses))
 [ "$v_base_n" -gt 0 ] &&
   printf 'baseline:   %s probes, ~%s est tokens mean\n' "$v_base_n" "$((v_base_est / v_base_n))"
 if [ "$v_base_n" -gt 0 ] && [ "$v_scoped_n" -gt 0 ] && [ "$v_base_est" -ge "$v_base_n" ]; then
-  printf 'delta:      scoped searches use ~%s%% of baseline est tokens\n' \
+  printf 'delta:      scoped searches returned ~%s%% of baseline-probe output (different patterns; trend, not a claim)\n' \
     "$((v_scoped_est * 100 / (v_scoped_n * (v_base_est / v_base_n))))"
 fi
 if [ "$v_eval_n" -gt 0 ]; then

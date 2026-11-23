@@ -40,13 +40,24 @@ health=""
 if [ -x "$here/check_namespaces.sh" ] || [ -f "$here/check_namespaces.sh" ]; then
   verdict="$(cd "$root" && bash "$here/check_namespaces.sh" . 2>&1 | tail -1 || true)"
   case "$verdict" in
-    *"0 failures, 0 warnings"*) health="prefixer: map is healthy, search inside these scopes first, widen one level on a miss." ;;
+    *"0 failures, 0 warnings"*) health="prefixer: map is healthy, search inside these scopes first and say which tag you used, widen one level on a miss." ;;
     *) health="prefixer: map needs attention ($verdict); run check_namespaces.sh, scopes below may be stale." ;;
   esac
 fi
 
+# logged savings recap: the meter proves scoped search pays, right at
+# the moment the agent decides whether to search inside the map first
+recap=""
+log="$root/.prefixer/metrics.jsonl"
+if [ -f "$log" ]; then
+  recap="$(awk '/"task":"scoped-search"/ { n++; if ($0 ~ /"first_try_hit":true/) h++ }
+    END { if (n) printf "prefixer: %d scoped searches logged, %d%% hit first try.", n, h * 100 / n }' "$log")"
+fi
+
 text="$body
 $health"
+[ -n "$recap" ] && text="$text
+$recap"
 
 if [ -n "$json" ]; then
   esc="$(printf '%s' "$text" | sed 's/\\/\\\\/g; s/"/\\"/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')"
