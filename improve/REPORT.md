@@ -1,7 +1,8 @@
 # Morning report: prefixer improvement run
 
-2026-11-23. Two releases shipped: `96a542d` (v1.3.0) and `8573d1c`
-(v1.3.1), both on `main`, all gates green at push time.
+2026-11-23. Two releases tagged and published on GitHub: **v1.3.0**
+and **v1.3.1** (marked Latest). `main` is at `e1c490e`, validate CI
+green, all four global skill dirs installed at 1.3.1.
 Full audit trail: `improve/LEDGER.md`.
 
 ## Chosen direction and why
@@ -72,6 +73,13 @@ audit found two more upstream portability bugs, shipped as v1.3.1.
   fixture broad grep is cheap, so agents rationally skip scoping; the
   fixture may under-sell. Not fixed; raising it needs either a bigger
   fixture or agent-side evidence the map changed a decision.
-- `agentskills validate` still unverified locally; CI covers it.
 - Mapped-arm search bytes exceed baseline by design of the receipt +
   budgeted output; documented in RESULTS.md.
+- The corpus claim (74% today) is hand-synced into README/docs/assets;
+  CI refreshes RESULTS.md weekly and the new AGENTS.md invariant lists
+  every surface to touch. Still a manual step each refresh.
+
+Overnight after the 1.3.1 ship: a portability audit (bash 3.2, BSD
+sed), a 1-rep agent-eval smoke run, the corpus-claim sync, release
+tagging, and the `release.yml` TODO-guard fix are all in the ledger
+(rows 14-24).
