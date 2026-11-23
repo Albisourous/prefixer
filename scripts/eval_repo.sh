@@ -23,7 +23,7 @@ echo
 . "$here/lib_scope.sh"
 pairs="$(scope_pairs "$map")"
 
-printf '%-24s %9s %11s %9s %11s %7s\n' "tag" "root_hits" "root_bytes" "ns_hits" "ns_bytes" "pct"
+printf '%-24s %9s %11s %9s %11s %9s\n' "tag" "root_hits" "root_bytes" "ns_hits" "ns_bytes" "pct_saved"
 tot=0; saved_b=0; n=0; skipped=0; excl=0
 while IFS=$'\t' read -r tag leaf scope; do
   [ -n "$tag" ] || continue
@@ -38,16 +38,16 @@ while IFS=$'\t' read -r tag leaf scope; do
   # a scope that lives entirely inside dirs the baseline grep skips
   # compares two different universes — mark it, don't fake a number
   if printf '%s' "$out" | grep -q '"baseline_excluded":true'; then
-    printf '%-24s %9s %11s %9s %11s %7s\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "n/a"
+    printf '%-24s %9s %11s %9s %11s %9s\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "n/a"
     excl=$((excl + 1)); continue
   fi
   # a namespace whose own name never appears in its files can't prove
   # savings — 0 scoped hits is a probe blind spot, not a perfect score
   if [ "$sh" = "0" ]; then
-    printf '%-24s %9s %11s %9s %11s %7s\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "n/a"
+    printf '%-24s %9s %11s %9s %11s %9s\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "n/a"
     skipped=$((skipped + 1)); continue
   fi
-  printf '%-24s %9s %11s %9s %11s %6s%%\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "$pc"
+  printf '%-24s %9s %11s %9s %11s %8s%%\n' "$tag:" "$rh" "$rb" "$sh" "$sb" "$pc"
   tot=$((tot + pc)); saved_b=$((saved_b + bytes_saved)); n=$((n + 1))
 done <<< "$pairs"
 echo

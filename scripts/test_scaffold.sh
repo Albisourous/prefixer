@@ -623,6 +623,12 @@ case "$out" in
   *"HEALTH"*) echo "ok   restates lint health" ;;
   *) echo "FAIL restates lint health"; fail=1 ;;
 esac
+# the CHECK section is what surfaces uncovered dirs — a BSD-incompatible
+# sed alternation silently emptied it on macOS
+case "$out" in
+  *"CHECK"*"src/core"*) echo "ok   flags uncovered dir in CHECK" ;;
+  *) echo "FAIL flags uncovered dir in CHECK"; fail=1 ;;
+esac
 # a mapped scope is never suggested as ADD
 nocheck "mapped scope not re-suggested" 'api:.*<-' <(printf '%s' "$out")
 
@@ -816,6 +822,10 @@ esac
   echo "ok   other targets still install" || { echo "FAIL other targets still install"; fail=1; }
 [ -f "$tmp/iproj/.devin/skills/prefixer/scripts/test_scaffold.sh" ] &&
   { echo "FAIL dev tools excluded from installs"; fail=1; } || echo "ok   dev tools excluded from installs"
+case "$iout" in
+  *"next:"*"eval_repo.sh"*) echo "ok   install ends on the eval pointer" ;;
+  *) echo "FAIL install ends on the eval pointer"; fail=1 ;;
+esac
 
 # --- report_metrics.sh reads the log back (issue #48) ------------------
 mrp="$tmp/mreport"; mkdir -p "$mrp/.prefixer"

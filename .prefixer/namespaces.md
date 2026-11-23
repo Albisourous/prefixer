@@ -13,3 +13,4 @@ repo: prefixer
 | eval:  | eval/**                                                | measured eval harness, results              |
 | int:   | integrations/**                                        | hook configs for supported harnesses        |
 | ci:    | .github/**                                             | validate workflow                           |
+| imp:   | improve/**                                             | improvement council audit trail             |

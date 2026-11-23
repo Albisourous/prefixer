@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.3.1] - 2026-11-23
+
+Portability and clarity fixes found by running every user-facing
+script end to end on macOS and reading each output like a first-time
+user.
+
+- **`suggest_map.sh` CHECK section works on macOS again.** The BRE
+  `\|` alternation that extracted uncovered dirs is GNU-only; BSD sed
+  matched nothing, so the whole section silently never printed. Now
+  `sed -E`, and a test asserts the section fires.
+- **`eval_repo.sh` names its column.** `pct` is now `pct_saved`; a
+  table's last column should not need the footer to explain it.
+- **`install.sh` ends on the measured number** the way
+  `init_namespaces.sh` already does: `next:` points at
+  `eval_repo.sh`, not just at reading the map.
+- **The repo's own map covers `improve/`** (`imp:`), so prefixer's
+  self-lint reports zero warnings on its own tree.
+- **`init_namespaces.sh` sibling lookup parses on bash 3.2.** A
+  `case` pattern inside `$()` needed the opening paren on macOS's
+  bash; without it every derived prefix collapsed to its first dir
+  word (`game:` instead of `client:`).
+
 ## [1.3.0] - 2026-11-23
 
 The savings the machinery already produced are now said out loud, at

@@ -106,6 +106,6 @@ for p in $targets; do
 done
 
 printf 'installed prefixer %s:\n%s' "${version:-?}" "$installed"
-echo "next: run bash <dest>/scripts/init_namespaces.sh at your repo root,"
-echo "then read .prefixer/namespaces.md before searching."
+echo "next: bash <dest>/scripts/init_namespaces.sh at your repo root, then"
+echo "bash <dest>/scripts/eval_repo.sh to measure the output bytes saved."
 case "$installed" in *" ."*) echo "tip: 'git add' the skills dir to share it with the team" ;; esac

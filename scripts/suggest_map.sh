@@ -110,7 +110,7 @@ fi
 
 # --- CHECK: coverage warnings from the linter, with drift --------------
 lint="$(bash "$here/check_namespaces.sh" "$root" 2>&1 || true)"
-unc="$(printf '%s\n' "$lint" | sed -n 's/^warn uncovered \(top dir\|dir\): \(.*\)\/$/\2/p')"
+unc="$(printf '%s\n' "$lint" | sed -nE 's/^warn uncovered (top dir|dir): (.*)\/$/\2/p')"
 if [ -n "$unc" ]; then
   echo "CHECK: uncovered dirs, and whether they changed after the map:"
   printf '%s\n' "$unc" | while IFS= read -r d; do
