@@ -827,6 +827,15 @@ case "$iout" in
   *) echo "FAIL install ends on the eval pointer"; fail=1 ;;
 esac
 
+# --- bash 3.2 guard: case inside $( ) must parenthesize its pattern ----
+# A case pattern without ( inside command substitution is a syntax
+# error on macOS bash 3.2 (the whole substitution fails silently in
+# most callers); Linux bash 5 parses it, so CI never saw it. Static
+# check: any `$(` with `case` before the closing `)` must use ` in (`.
+badcase="$(grep -nE '\$\([^)]*\bcase\b' "$here"/*.sh | grep -vE ' in \(' || true)"
+[ -z "$badcase" ] && echo "ok   case in \$( ) keeps opening paren" ||
+  { echo "FAIL case in \$( ) keeps opening paren: $badcase"; fail=1; }
+
 # --- report_metrics.sh reads the log back (issue #48) ------------------
 mrp="$tmp/mreport"; mkdir -p "$mrp/.prefixer"
 cat > "$mrp/.prefixer/metrics.jsonl" <<'EOF'
