@@ -105,7 +105,7 @@ your numbers;
 
 | repo | files | mean bytes saved | map cost |
 |---|---:|---:|---:|
-| [prefixer](https://github.com/Albisourous/prefixer) (this repo) | 81 | **87%** | ~350 tokens |
+| [prefixer](https://github.com/Albisourous/prefixer) (this repo) | 86 | **92%** | ~379 tokens |
 | [Albisourous/KiroCrew](https://github.com/Albisourous/KiroCrew) | 5,971 | **81%** | ~475 tokens |
 | private Roblox game | 160 | **57%** | ~385 tokens |
 | private C++ ray tracer | 321 | **40%** | ~245 tokens |
