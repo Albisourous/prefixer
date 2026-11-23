@@ -33,7 +33,9 @@ jobs:
             found { print }
           ' CHANGELOG.md > notes.md
           [ -s notes.md ] || { echo "no CHANGELOG section for $v"; exit 1; }
-          if grep -q "TODO" notes.md; then
+          # the placeholder bump-version writes is a bullet starting
+          # with TODO; notes that merely discuss TODO markers are fine
+          if grep -qE '^- *TODO' notes.md; then
             echo "CHANGELOG notes still say TODO"; exit 1
           fi
       - name: Create GitHub release
