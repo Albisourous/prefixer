@@ -40,3 +40,5 @@ calls mapped vs unmapped on a ~140-file fixture.
 | 16 | fix | eval_repo `pct` header unexplained; own map warned `uncovered top dir: improve/` | self-explanatory table + clean lint | fixed | header now `pct_saved`, columns realigned; `imp:` row added, eval_repo on self: 0 warnings, imp: 80% |
 | 17 | fix | install.sh ended on "read the map", skipped eval_repo | install-to-wow path now uniform | fixed | `next:` ends on eval_repo like init does; test `install ends on the eval pointer` added |
 | 18 | verify | agent eval `--reps 1` post-rewrite smoke run | harness green; noisy metrics | keep | mapped arm: 4.5 vs 7.8 calls, total bytes 50% smaller; search bytes +82%, first-try 13% (1 rep, stochastic; RESULTS.md appended like upstream's refresh commits) |
+| 19 | fix | docs/index.html drifted from live output + agent-note | stale `pct` header, old n/a text, no eval_repo in agent instructions | fixed | sample table re-headed `pct_saved`, footer matches live string, agent-note ends on eval_repo |
+| 20 | report | five-minute maintainer summary per PROMPT | `improve/REPORT.md` | keep | direction, per-stage changes, numbers, residuals |
