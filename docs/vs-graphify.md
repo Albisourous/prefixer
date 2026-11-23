@@ -23,7 +23,7 @@ codebases. They attack different halves of the problem:
 ## The honest overlap
 
 graphify's README pitches "cut agent token spend by 80%". Prefixer
-measures 79% mean bytes saved across its 18-repo corpus (81%
+measures 74% mean bytes saved across its 18-repo corpus (78%
 specifically on Graphify-Labs/graphify). These are not contradictory;
 they are different denominators:
 

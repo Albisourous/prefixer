@@ -2,7 +2,7 @@
 
 > An agent skill for scoped codebase search. A small namespace map keeps
 > AI coding agents searching the right part of the tree instead of
-> grepping the whole repo. Measured 79% mean fewer search-output bytes
+> grepping the whole repo. Measured 74% mean fewer search-output bytes
 > across an 18-repo public corpus, including popular skill repos like
 > obra/superpowers, anthropics/skills, and Graphify-Labs/graphify.
 

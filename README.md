@@ -6,7 +6,7 @@
 
 An agent skill for scoped codebase search. It gives agents a small
 namespace map so searches stay in the right part of the tree, which means
-fewer tokens spent on irrelevant hits: **79% of search-output bytes
+fewer tokens spent on irrelevant hits: **74% of search-output bytes
 saved, measured across 18 public repos.** Works with Devin, Windsurf,
 Claude Code, Codex, Cursor, and other agents that read skills. `references/` also ships
 playbooks for index-time doc prefixes and prompt-cache ordering.
@@ -78,17 +78,17 @@ same grep at repo root and inside the namespace's globs. `eval/run.sh`
 does that weekly over an 18-repo corpus and commits the table, so the
 claim stays honest as the scaffold changes:
 
-<img src="assets/eval-chart.svg" alt="Measured mean search bytes saved per repo across 18 public repos, 53 to 92%" width="720">
+<img src="assets/eval-chart.svg" alt="Measured mean search bytes saved per repo across 18 public repos, 55 to 91%" width="720">
 
 | repo | shape | mean bytes saved |
 |---|---|---|
-| DietrichGebert/ponytail | web-app | **92%** |
-| mattpocock/skills | skills-pack | **91%** |
-| cli/cli | go-cli | **88%** |
-| fastapi/fastapi | python-web | **87%** |
-| tokio-rs/tokio | rust-async | **86%** |
-| obra/superpowers | skills-pack | **85%** |
-| **18-repo corpus mean** | | **79%** |
+| DietrichGebert/ponytail | web-app | **91%** |
+| blader/humanizer | agent-skill | **90%** |
+| addyosmani/agent-skills | skills-pack | **88%** |
+| spf13/cobra | go-cli-lib | **85%** |
+| mattpocock/skills | skills-pack | **83%** |
+| Graphify-Labs/graphify | knowledge-graph | **78%** |
+| **18-repo corpus mean** | | **74%** |
 
 The corpus runs on the skill repos agents actually install, plus cli/cli,
 ponytail, ripgrep, shadcn-ui/ui, express, rust-lang/book, and requests.

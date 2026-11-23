@@ -37,6 +37,11 @@ the prompt agents read, and the source of truth. There is no build step.
   must exist.
 - **Portability:** no instructions that assume one agent tool.
 - **Sync:** keep SKILL.md and README.md claims consistent.
+- **Corpus numbers:** README.md, `docs/`, and `assets/` quote
+  `eval/RESULTS.md`, which CI refreshes weekly. When the corpus
+  numbers change, update the mean, the per-repo rows, the namespace
+  count, the min-max range, `eval-chart.svg`, and `og-image` text
+  together.
 
 ## Writing style
 
